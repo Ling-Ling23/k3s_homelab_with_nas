@@ -1,0 +1,27 @@
+---
+# Global variables for all hosts
+
+# k3s version
+k3s_version: v1.28.5+k3s1
+
+# k3s configuration
+k3s_token: "changeme-super-secret-token-12345"  # Change this!
+k3s_server_ip: "{{ hostvars[groups['master'][0]]['ansible_host'] }}"
+k3s_api_port: 6443
+
+# k3s installation options for master
+k3s_master_extra_args: >-
+  --write-kubeconfig-mode 644
+  --disable traefik
+  --disable servicelb
+  --flannel-backend=vxlan
+
+# k3s installation options for workers  
+k3s_worker_extra_args: ""
+
+# System configuration
+timezone: "America/New_York"  # Update to your timezone
+enable_swap: false
+
+# Kubeconfig local path (where to save on your laptop)
+kubeconfig_local_path: "~/.kube/k3s-homelab-config"

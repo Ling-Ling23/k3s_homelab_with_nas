@@ -1,0 +1,39 @@
+# Ansible
+*.retry
+/tmp/
+.ansible/
+
+# Kubeconfig
+*.kubeconfig
+*kubeconfig*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfvars
+!example.tfvars
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*secret*
+*token*
+!.gitkeep

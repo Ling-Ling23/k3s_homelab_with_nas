@@ -1,0 +1,47 @@
+---
+- name: Reset k3s cluster
+  hosts: k3s_cluster
+  become: yes
+  tasks:
+    - name: Check if k3s-killall.sh exists
+      stat:
+        path: /usr/local/bin/k3s-killall.sh
+      register: k3s_killall
+
+    - name: Stop k3s
+      command: /usr/local/bin/k3s-killall.sh
+      when: k3s_killall.stat.exists
+      ignore_errors: yes
+
+    - name: Check if k3s-uninstall.sh exists (server)
+      stat:
+        path: /usr/local/bin/k3s-uninstall.sh
+      register: k3s_uninstall_server
+
+    - name: Uninstall k3s server
+      command: /usr/local/bin/k3s-uninstall.sh
+      when: k3s_uninstall_server.stat.exists
+      ignore_errors: yes
+
+    - name: Check if k3s-agent-uninstall.sh exists (worker)
+      stat:
+        path: /usr/local/bin/k3s-agent-uninstall.sh
+      register: k3s_uninstall_agent
+
+    - name: Uninstall k3s agent
+      command: /usr/local/bin/k3s-agent-uninstall.sh
+      when: k3s_uninstall_agent.stat.exists
+      ignore_errors: yes
+
+    - name: Remove k3s directory
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/rancher/k3s
+        - /etc/rancher/k3s
+        - /home/{{ ansible_user }}/.kube
+
+    - name: Display reset complete message
+      debug:
+        msg: "k3s has been removed from {{ inventory_hostname }}"
