@@ -37,3 +37,4 @@ Thumbs.db
 *secret*
 *token*
 !.gitkeep
+ansible/secrets/*

@@ -16,7 +16,7 @@ k3s_master_extra_args: >-
   --disable servicelb
   --flannel-backend=vxlan
 
-# k3s installation options for workers  
+# k3s installation options for workers  s
 k3s_worker_extra_args: ""
 
 # System configuration

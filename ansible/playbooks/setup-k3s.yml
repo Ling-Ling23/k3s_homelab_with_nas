@@ -134,6 +134,26 @@
         group: "{{ ansible_user }}"
         mode: '0600'
 
+    - name: Download Helm installation script
+      get_url:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp/get_helm.sh
+        mode: '0755'
+
+    - name: Install Helm
+      shell: /tmp/get_helm.sh
+      args:
+        creates: /usr/local/bin/helm
+
+    - name: Verify Helm installation
+      shell: helm version --short
+      register: helm_version
+      changed_when: false
+
+    - name: Display Helm version
+      debug:
+        msg: "Helm installed: {{ helm_version.stdout }}"
+
     - name: Fetch kubeconfig to local machine
       fetch:
         src: /etc/rancher/k3s/k3s.yaml
@@ -149,6 +169,12 @@
       slurp:
         src: /tmp/k3s-kubeconfig
       register: kubeconfig_content
+
+    - name: Ensure .kube directory exists
+      file:
+        path: "{{ (kubeconfig_local_path | expanduser) | dirname }}"
+        state: directory
+        mode: '0755'
 
     - name: Update kubeconfig with correct server address
       copy:
@@ -190,3 +216,46 @@
       changed_when: false
       delegate_to: "{{ groups['master'][0] }}"
       when: inventory_hostname in groups['workers']
+
+
+    ### ADITIONAL STUFF - DIFFRENT PLAYBOOK LATER
+    - name: Install open-iscsi for Longhorn
+      hosts: all
+      become: yes
+      tasks:
+        - name: Update apt cache
+          apt:
+            update_cache: yes
+            cache_valid_time: 3600
+
+        - name: Install open-iscsi
+          apt:
+            name: open-iscsi
+            state: present
+
+        - name: Enable iscsid service
+          systemd:
+            name: iscsid
+            enabled: yes
+            state: started
+
+        - name: Verify iscsiadm is available
+          command: iscsiadm --version
+          register: iscsiadm_version
+          changed_when: false
+
+        - name: Display iscsiadm version
+          debug:
+            msg: "iscsiadm version: {{ iscsiadm_version.stdout }}"
+
+
+
+
+    - name: Grant passwordless sudo to lingling
+      lineinfile:
+        path: /etc/sudoers.d/lingling
+        line: 'lingling ALL=(ALL) NOPASSWD: ALL'
+        create: yes
+        mode: '0440'
+        validate: 'visudo -cf %s'
+      become: yes
