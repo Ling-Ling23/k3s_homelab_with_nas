@@ -22,6 +22,8 @@
           - vim
           - htop
           - net-tools
+          - iptables
+          - iptables-persistent
         state: present
 
     - name: Set timezone
@@ -39,12 +41,31 @@
         state: absent
       when: enable_swap == false
 
+    - name: Check for cmdline.txt location
+      stat:
+        path: "{{ item }}"
+      register: cmdline_check
+      loop:
+        - /boot/firmware/cmdline.txt
+        - /boot/cmdline.txt
+
+    - name: Set cmdline path
+      set_fact:
+        cmdline_path: "{{ item.item }}"
+      when: item.stat.exists
+      loop: "{{ cmdline_check.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Check if cgroups are already enabled
+      shell: grep -q 'cgroup_memory=1' {{ cmdline_path }}
+      register: cgroup_check
+      failed_when: false
+      changed_when: false
+
     - name: Enable cgroup memory and cpuset
-      lineinfile:
-        path: /boot/cmdline.txt
-        regexp: '^(.*rootwait)(.*)$'
-        line: '\1 cgroup_memory=1 cgroup_enable=memory\2'
-        backrefs: yes
+      shell: sed -i 's/$/ cgroup_memory=1 cgroup_enable=memory/' {{ cmdline_path }}
+      when: cgroup_check.rc != 0
       notify: reboot pi
 
     - name: Enable legacy iptables

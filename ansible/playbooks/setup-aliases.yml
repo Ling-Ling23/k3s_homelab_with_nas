@@ -1,0 +1,123 @@
+---
+- name: Configure shell aliases on k3s nodes
+  hosts: k3s_cluster
+  become: no
+  tasks:
+    - name: Create .bash_aliases file
+      blockinfile:
+        path: "/home/{{ ansible_user }}/.bash_aliases"
+        create: yes
+        mode: '0644'
+        marker: "# {mark} ANSIBLE MANAGED - K3S ALIASES"
+        block: |
+          # Docker aliases
+          alias d='docker'
+          alias dc='docker compose'
+          alias dps='docker ps'
+          alias dpsa='docker ps -a'
+          alias di='docker images'
+          alias dex='docker exec -it'
+          alias dlogs='docker logs -f'
+          
+          # Kubectl aliases
+          alias k='kubectl'
+          alias kg='kubectl get'
+          alias kd='kubectl describe'
+          alias kdel='kubectl delete'
+          alias ka='kubectl apply -f'
+          alias kl='kubectl logs'
+          alias klf='kubectl logs -f'
+          alias kex='kubectl exec -it'
+          alias kgp='kubectl get pods'
+          alias kgpa='kubectl get pods -A'
+          alias kgs='kubectl get services'
+          alias kgsa='kubectl get services -A'
+          alias kgn='kubectl get nodes'
+          alias kgns='kubectl get namespaces'
+          alias kctx='kubectl config get-contexts'
+          alias kns='kubectl config set-context --current --namespace'
+          
+          # Kubectl shortcuts with watch
+          alias watch-pods='watch kubectl get pods -A'
+          alias watch-nodes='watch kubectl get nodes'
+          
+          # k3s specific
+          alias k3s-status='sudo systemctl status k3s'
+          alias k3s-restart='sudo systemctl restart k3s'
+          alias k3s-logs='sudo journalctl -u k3s -f'
+          
+          # Helm aliases (if you use Helm later)
+          alias h='helm'
+          alias hls='helm list'
+          alias hlsa='helm list -A'
+          alias hin='helm install'
+          alias hup='helm upgrade'
+          
+          # Common shortcuts
+          alias ll='ls -alh'
+          alias la='ls -A'
+          alias l='ls -CF'
+          alias ..='cd ..'
+          alias ...='cd ../..'
+
+    - name: Ensure .bash_aliases is sourced in .bashrc
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        line: "{{ item }}"
+        create: yes
+      loop:
+        - "# Source bash aliases"
+        - "if [ -f ~/.bash_aliases ]; then"
+        - "    . ~/.bash_aliases"
+        - "fi"
+
+    - name: Display instructions
+      debug:
+        msg: |
+          Aliases configured successfully!
+          Run 'source ~/.bashrc' or log out and back in to use them.
+          
+          Quick reference:
+          - d = docker
+          - k = kubectl
+          - kg = kubectl get
+          - kd = kubectl describe
+          - kgp = kubectl get pods
+          - kgpa = kubectl get pods -A
+          - kl = kubectl logs
+          - klf = kubectl logs -f
+
+- name: Apply aliases for root user (master node only)
+  hosts: master
+  become: yes
+  tasks:
+    - name: Create root .bash_aliases
+      blockinfile:
+        path: /root/.bash_aliases
+        create: yes
+        mode: '0644'
+        marker: "# {mark} ANSIBLE MANAGED - K3S ALIASES"
+        block: |
+          # Kubectl aliases
+          alias k='kubectl'
+          alias kg='kubectl get'
+          alias kd='kubectl describe'
+          alias kgp='kubectl get pods'
+          alias kgpa='kubectl get pods -A'
+          alias kgs='kubectl get services'
+          alias kgn='kubectl get nodes'
+          alias kl='kubectl logs'
+          alias klf='kubectl logs -f'
+          alias watch-pods='watch kubectl get pods -A'
+          alias k3s-status='systemctl status k3s'
+          alias k3s-logs='journalctl -u k3s -f'
+
+    - name: Ensure root .bash_aliases is sourced
+      lineinfile:
+        path: /root/.bashrc
+        line: "{{ item }}"
+        create: yes
+      loop:
+        - "if [ -f ~/.bash_aliases ]; then"
+        - "    . ~/.bash_aliases"
+        - "fi"
