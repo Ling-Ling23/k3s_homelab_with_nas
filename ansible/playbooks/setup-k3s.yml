@@ -110,7 +110,7 @@
         timeout: 300
 
     - name: Wait for node to be ready
-      shell: kubectl get nodes {{ inventory_hostname }} --no-headers | awk '{print $2}'
+      shell: kubectl get nodes {{ ansible_hostname }} --no-headers | awk '{print $2}'
       register: node_status
       until: node_status.stdout == "Ready"
       retries: 30
