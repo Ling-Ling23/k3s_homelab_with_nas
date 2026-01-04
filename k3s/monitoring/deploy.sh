@@ -57,3 +57,10 @@ echo "Access Prometheus (port-forward):"
 echo "  kubectl port-forward -n $NAMESPACE svc/$RELEASE_NAME-prometheus 9090:9090"
 echo "  URL: http://localhost:9090"
 echo ""
+
+# Deploy additional manifests
+echo "Deploying Grafana dashboard..."
+kubectl apply -f "$(dirname "$0")/grafana-dashboard-configmap.yaml"
+
+echo ""
+echo "Dashboard will appear in Grafana in a few moments!"
