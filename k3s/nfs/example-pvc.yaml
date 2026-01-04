@@ -1,0 +1,27 @@
+# Example: Using NFS storage for a database
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-nfs
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany  # NFS supports multiple pods
+  storageClassName: nfs-synology
+  resources:
+    requests:
+      storage: 50Gi  # Can be large, stored on NAS
+---
+# Example: Using Longhorn for app OS volumes
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-config
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-2replica
+  resources:
+    requests:
+      storage: 1Gi  # Small, fast, replicated

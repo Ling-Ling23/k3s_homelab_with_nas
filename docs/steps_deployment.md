@@ -66,3 +66,10 @@ Consider later:
 
 ArgoCD/Flux if you want GitOps automation
 Terraform if you expand to managing VMs, cloud resources, DNS, etc.
+
+
+Use NAS directly with NFS CSI Driver (Recommended for large data)
+Mount NAS storage directly to pods
+Best for: databases, media files, shared storage
+No replication overhead
+Longhorn handles OS/app volumes, NAS handles data

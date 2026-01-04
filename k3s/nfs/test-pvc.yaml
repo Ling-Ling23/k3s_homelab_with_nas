@@ -1,0 +1,34 @@
+---
+# Example PVC using NFS storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-nfs-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-synology
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Test pod to verify NFS mount
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-nfs-pod
+  namespace: default
+spec:
+  containers:
+  - name: test
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "echo 'NFS test file' > /data/test.txt && cat /data/test.txt && sleep 3600"]
+    volumeMounts:
+    - name: nfs-volume
+      mountPath: /data
+  volumes:
+  - name: nfs-volume
+    persistentVolumeClaim:
+      claimName: test-nfs-pvc

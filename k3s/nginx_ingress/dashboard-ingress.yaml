@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: dashboard.homelab.local  # Add this to your /etc/hosts
+  - host: dashboard.homelab.local
     http:
       paths:
       - path: /

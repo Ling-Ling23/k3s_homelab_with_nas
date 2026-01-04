@@ -1,0 +1,72 @@
+---
+- name: Deploy NFS CSI Driver for Synology Storage
+  hosts: master
+  become: no
+  vars:
+    nfs_server: "192.168.0.197"  # Change to your Synology IP
+    nfs_path: "/volume1/k3s-storage"  # Change to your NFS share path
+    
+  tasks:
+    - name: Add NFS CSI Driver Helm repository
+      kubernetes.core.helm_repository:
+        name: csi-driver-nfs
+        repo_url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+        state: present
+
+    - name: Update Helm repositories
+      command: helm repo update
+      changed_when: false
+
+    - name: Install NFS CSI Driver
+      kubernetes.core.helm:
+        name: csi-driver-nfs
+        chart_ref: csi-driver-nfs/csi-driver-nfs
+        release_namespace: kube-system
+        create_namespace: false
+        state: present
+        wait: true
+        wait_timeout: 5m
+        values:
+          driver:
+            name: nfs.csi.k8s.io
+
+    - name: Wait for NFS CSI Driver pods to be ready
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: kube-system
+        label_selectors:
+          - app=csi-nfs-controller
+      register: nfs_pods
+      until: 
+        - nfs_pods.resources | length > 0
+        - nfs_pods.resources[0].status.phase == "Running"
+      retries: 30
+      delay: 5
+
+    - name: Create NFS StorageClass
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-synology
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "{{ nfs_server }}"
+            share: "{{ nfs_path }}"
+          reclaimPolicy: Retain
+          volumeBindingMode: Immediate
+          allowVolumeExpansion: true
+
+    - name: Display NFS setup info
+      debug:
+        msg:
+          - "NFS CSI Driver installed successfully!"
+          - "StorageClass 'nfs-synology' created"
+          - "NFS Server: {{ nfs_server }}"
+          - "NFS Path: {{ nfs_path }}"
+          - "Use this StorageClass for large data volumes"
+          - ""
+          - "Example usage in PVC:"
+          - "  storageClassName: nfs-synology"
