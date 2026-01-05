@@ -7,7 +7,7 @@ helm install longhorn longhorn/longhorn \
   --create-namespace \
   --version 1.7.2
 
-# Add NGINX Ingress repository
+# Add (pn) Ingress repository
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 # Install NGINX Ingress Controller

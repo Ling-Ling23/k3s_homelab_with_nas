@@ -19,14 +19,9 @@ config:
         Path /var/log/containers/*.log
         multiline.parser docker, cri
         Tag kube.*
-        Mem_Buf_Limit 5MB
+        Mem_Buf_Limit 2MB
         Skip_Long_Lines On
-
-    [INPUT]
-        Name systemd
-        Tag host.*
-        Systemd_Filter _SYSTEMD_UNIT=kubelet.service
-        Read_From_Tail On
+        Refresh_Interval 10
 
   filters: |
     [FILTER]
@@ -104,14 +99,19 @@ daemonSetVolumeMounts:
     mountPath: /etc/machine-id
     readOnly: true
 
-# Resources
+# Resources - reduced for Raspberry Pi ARM compatibility
 resources:
   limits:
-    cpu: 200m
-    memory: 256Mi
-  requests:
-    cpu: 50m
+    cpu: 100m
     memory: 64Mi
+  requests:
+    cpu: 30m
+    memory: 32Mi
+
+# Environment variables to help with jemalloc issues
+env:
+  - name: GOMEMLIMIT
+    value: "50MiB"
 
 # Tolerations to run on all nodes including master
 tolerations:

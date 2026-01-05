@@ -1,18 +1,14 @@
-# Loki configuration for homelab
+# Loki configuration for homelab - SingleBinary mode
 # Storage on NFS (Synology)
 
-# Single binary deployment (simpler for homelab)
 deploymentMode: SingleBinary
 
 loki:
   auth_enabled: false
-  
   commonConfig:
     replication_factor: 1
-  
   storage:
     type: filesystem
-  
   schemaConfig:
     configs:
       - from: 2024-01-01
@@ -22,20 +18,8 @@ loki:
         index:
           prefix: loki_index_
           period: 24h
-  
-  # Retention policy
   limits_config:
-    retention_period: 168h  # 7 days
-    max_query_lookback: 168h
-  
-  # Chunk size optimization
-  chunk_store_config:
-    max_look_back_period: 168h
-  
-  storage_config:
-    tsdb_shipper:
-      active_index_directory: /var/loki/index
-      cache_location: /var/loki/cache
+    retention_period: 168h
 
 singleBinary:
   replicas: 1
@@ -45,24 +29,39 @@ singleBinary:
     size: 10Gi
   resources:
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 300m
+      memory: 256Mi
     requests:
-      cpu: 100m
+      cpu: 50m
       memory: 128Mi
+  # Fix for ARM/jemalloc issues on Raspberry Pi
+  extraEnv:
+    - name: GOMEMLIMIT
+      value: "230MiB"
 
-# Gateway for better performance
+# Explicitly disable all scalable mode components
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
 gateway:
-  enabled: true
-  replicas: 1
-  ingress:
-    enabled: false
+  enabled: false
 
-# Monitoring integration
+# Disable memory-intensive caching for Raspberry Pi
+chunksCache:
+  enabled: false
+  
+resultsCache:
+  enabled: false
+
 monitoring:
   selfMonitoring:
     enabled: false
-    grafanaAgent:
-      installOperator: false
   lokiCanary:
     enabled: false
+
+test:
+  enabled: false

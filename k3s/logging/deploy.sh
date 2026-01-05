@@ -19,7 +19,6 @@ fi
 # Add Helm repositories
 echo "Adding Helm repositories..."
 helm repo add grafana https://grafana.github.io/helm-charts
-helm repo add fluent https://fluent.github.io/helm-charts
 helm repo update
 
 # Create namespace
@@ -32,21 +31,26 @@ echo "Installing Loki..."
 helm upgrade --install loki grafana/loki \
   --namespace $NAMESPACE \
   --values "$SCRIPT_DIR/helm_values/loki-values.yaml" \
-  --wait \
-  --timeout 5m
+  --timeout 10m \
+  --debug
 
-# Wait for Loki to be ready
-echo "Waiting for Loki to be ready..."
-kubectl wait --for=condition=available --timeout=300s \
-  deployment/loki-gateway -n $NAMESPACE || true
-
-# Install Fluent Bit
+# Check Loki pods status
 echo ""
-echo "Installing Fluent Bit..."
-helm upgrade --install fluent-bit fluent/fluent-bit \
+echo "Checking Loki deployment status..."
+kubectl get pods -n $NAMESPACE -l app.kubernetes.io/name=loki
+
+# Wait for Loki to be ready (but don't fail if gateway doesn't exist)
+echo ""
+echo "Waiting for Loki pod to be ready..."
+kubectl wait --for=condition=ready --timeout=300s \
+  pod -l app.kubernetes.io/name=loki -n $NAMESPACE || echo "Warning: Loki not ready yet, continuing..."
+
+# Install Promtail
+echo ""
+echo "Installing Promtail..."
+helm upgrade --install promtail grafana/promtail \
   --namespace $NAMESPACE \
-  --values "$SCRIPT_DIR/helm_values/fluent-bit-values.yaml" \
-  --wait \
+  --values "$SCRIPT_DIR/helm_values/promtail-values.yaml" \
   --timeout 5m
 
 echo ""
@@ -56,7 +60,7 @@ echo "=========================================="
 echo ""
 echo "Components installed:"
 echo "  ✅ Loki (log aggregation)"
-echo "  ✅ Fluent Bit (log collection)"
+echo "  ✅ Promtail (log collection)"
 echo ""
 echo "Next steps:"
 echo "1. Add Loki datasource to Grafana:"
