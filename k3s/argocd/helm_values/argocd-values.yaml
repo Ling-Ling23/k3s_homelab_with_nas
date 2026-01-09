@@ -1,0 +1,21 @@
+# argocd-values.yaml
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: argocd.home.local
+    annotations:
+      cert-manager.io/cluster-issuer: "ca-issuer"
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    tls: true
+    extraTls:
+      - secretName: argocd-tls
+        hosts:
+          - argocd.home.local
+
+# Reduce resources for Pi
+controller:
+  resources:
+    limits:
+      memory: 512Mi
