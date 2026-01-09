@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: github-runner
+  namespace: argocd
+spec:
+  project: default
+  
+  # Source: Where the manifests are stored
+  source:
+    repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+    targetRevision: main
+    path: k3s/argocd/github-runner
+  
+  # Destination: Where to deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: github-runner
+  
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

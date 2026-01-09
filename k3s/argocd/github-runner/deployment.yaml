@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-runner
+  namespace: github-runner
+  labels:
+    app: github-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-runner
+  template:
+    metadata:
+      labels:
+        app: github-runner
+    spec:
+      containers:
+      - name: runner
+        image: myoung34/github-runner:latest
+        imagePullPolicy: Always
+        env:
+        - name: REPO_URL
+          valueFrom:
+            secretKeyRef:
+              name: github-runner-secret
+              key: REPO_URL
+        - name: RUNNER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-runner-secret
+              key: GITHUB_TOKEN
+        - name: RUNNER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: RUNNER_WORKDIR
+          value: /tmp/runner
+        - name: RUNNER_SCOPE
+          value: "repo"
+        - name: LABELS
+          value: "self-hosted,k3s,homelab"
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: work
+          mountPath: /tmp/runner
+      volumes:
+      - name: work
+        emptyDir: {}
+      restartPolicy: Always
