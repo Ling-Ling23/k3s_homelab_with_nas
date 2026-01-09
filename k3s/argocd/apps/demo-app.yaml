@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
     targetRevision: main
-    path: k3s/argocd/apps/demo-app
+    path: k3s/argocd/demo-app
   
   # Destination: Where to deploy
   destination:
