@@ -9,6 +9,20 @@ config:
   clients:
     - url: http://loki:3100/loki/api/v1/push
       tenant_id: 1
+      
+  # Limit positions file size
+  positions:
+    filename: /run/promtail/positions.yaml
+    
+  # Target configs to reduce file handles
+  server:
+    log_level: info
+    http_listen_port: 3101
+    
+  limits_config:
+    readline_rate_enabled: true
+    readline_rate: 100
+    readline_burst: 1000
 
   # Scrape configs
   snippets:
@@ -91,6 +105,44 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
+
+# Container-level environment variables
+extraEnv:
+  - name: GOGC
+    value: "50"
+
+# Override readiness probe to be more lenient
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http-metrics
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 100
+
+# Volumes for positions file and log access
+defaultVolumes:
+  - name: run
+    hostPath:
+      path: /run/promtail
+  - name: containers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: pods
+    hostPath:
+      path: /var/log/pods
+
+defaultVolumeMounts:
+  - name: run
+    mountPath: /run/promtail
+  - name: containers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: pods
+    mountPath: /var/log/pods
+    readOnly: true
 
 # Tolerations to run on all nodes
 tolerations:

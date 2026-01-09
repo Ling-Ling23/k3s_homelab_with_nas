@@ -1,10 +1,10 @@
-# Centralized Logging with Fluent Bit + Loki
+# Centralized Logging with Promtail + Loki
 
 ## Overview
 Complete logging stack for collecting, aggregating, and querying logs from all cluster pods and nodes.
 
 **Stack:**
-- **Fluent Bit** - Lightweight log collector (DaemonSet on every node)
+- **Promtail** - Lightweight log collector (DaemonSet on every node) - ARM-compatible
 - **Loki** - Log aggregation and storage
 - **Grafana** - Log visualization and querying (already installed)
 
@@ -25,7 +25,7 @@ Or manually in Grafana:
 1. Go to https://grafana.homelab.local
 2. Configuration → Data Sources → Add data source
 3. Select Loki
-4. URL: `http://loki-gateway.logging.svc.cluster.local`
+4. URL: `http://loki.logging.svc.cluster.local:3100`
 5. Save & Test
 
 ## Verify Deployment
@@ -35,15 +35,15 @@ Or manually in Grafana:
 kubectl get pods -n logging
 
 # Expected:
-# fluent-bit-xxxxx (DaemonSet - one per node)
+# promtail-xxxxx (DaemonSet - one per node)
 # loki-0 (StatefulSet)
-# loki-gateway-xxxxx (Deployment)
+# loki-canary-xxxxx (DaemonSet)
 
-# Check Fluent Bit logs
-kubectl logs -n logging daemonset/fluent-bit -f
+# Check Promtail logs (excluding readiness probe spam)
+kubectl logs -n logging -l app.kubernetes.io/name=promtail | grep -v 'GET /ready' | tail -50
 
 # Check Loki logs
-kubectl logs -n logging deployment/loki-gateway -f
+kubectl logs -n logging loki-0 -c loki -f
 ```
 
 ## Query Logs in Grafana
@@ -102,8 +102,8 @@ singleBinary:
     size: 10Gi  # Adjust based on log volume
 ```
 
-### Fluent Bit Filters
-Edit [fluent-bit-values.yaml](fluent-bit-values.yaml) to add custom parsing/filtering.
+### Promtail Pipeline Stages
+Edit [promtail-values.yaml](helm_values/promtail-values.yaml) to add custom parsing/filtering in the `pipeline_stages` section.
 
 ## Storage Usage
 
@@ -116,49 +116,51 @@ kubectl exec -n logging loki-0 -- du -sh /var/loki
 
 ### No logs appearing in Grafana
 
-**1. Check Fluent Bit is running:**
+**1. Check Promtail is running:**
 ```bash
-kubectl get pods -n logging -l app.kubernetes.io/name=fluent-bit
+kubectl get pods -n logging -l app.kubernetes.io/name=promtail
 ```
 
-**2. Check Fluent Bit logs:**
+**2. Check Promtail logs:**
 ```bash
-kubectl logs -n logging -l app.kubernetes.io/name=fluent-bit --tail=50
+kubectl logs -n logging -l app.kubernetes.io/name=promtail --tail=50 | grep -v 'GET /ready'
 ```
 
 **3. Verify Loki is receiving logs:**
 ```bash
-kubectl logs -n logging deployment/loki-gateway --tail=50
+kubectl logs -n logging loki-0 -c loki --tail=50
 ```
 
 **4. Test Loki API:**
 ```bash
-kubectl port-forward -n logging svc/loki-gateway 3100:80
+kubectl port-forward -n logging svc/loki 3100:3100
 curl http://localhost:3100/ready
 curl http://localhost:3100/loki/api/v1/labels
 ```
 
-### Fluent Bit not collecting logs
+### Promtail not collecting logs
 
 Check permissions:
 ```bash
-kubectl describe daemonset fluent-bit -n logging
+kubectl describe daemonset promtail -n logging
 ```
 
 Verify volume mounts:
 ```bash
-kubectl get pod -n logging -l app.kubernetes.io/name=fluent-bit -o yaml | grep -A 10 volumeMounts
+kubectl get pod -n logging -l app.kubernetes.io/name=promtail -o yaml | grep -A 10 volumeMounts
 ```
+
+### Promtail shows 0/1 Ready
+
+This is normal - Promtail's readiness probe is strict but logs are still being collected. Check that logs appear in Grafana Explore.
 
 ### High memory usage
 
-Reduce buffer size in [fluent-bit-values.yaml](fluent-bit-values.yaml):
+Reduce limits in [promtail-values.yaml](helm_values/promtail-values.yaml):
 ```yaml
-config:
-  inputs: |
-    [INPUT]
-        ...
-        Mem_Buf_Limit 1MB  # Reduce from 5MB
+resources:
+  limits:
+    memory: 64Mi  # Reduce from 128Mi
 ```
 
 ### Loki pod not starting
@@ -185,13 +187,13 @@ kubectl get storageclass nfs-synology
        └───────────────────┴───────────────────┘
                            │
                     ┌──────▼──────┐
-                    │ Fluent Bit  │  (DaemonSet - collects)
-                    │ (~450KB mem)│
+                    │  Promtail   │  (DaemonSet - collects)
+                    │  (~64Mi mem)│
                     └──────┬──────┘
                            │
                     ┌──────▼──────┐
                     │    Loki     │  (aggregates & stores)
-                    │   Gateway   │
+                    │ SingleBinary│
                     └──────┬──────┘
                            │
                     ┌──────▼──────┐
@@ -201,13 +203,13 @@ kubectl get storageclass nfs-synology
 
 ## Performance
 
-**Fluent Bit resource usage (per node):**
-- CPU: ~50m (idle) to 200m (peak)
-- Memory: ~64Mi (idle) to 256Mi (peak)
+**Promtail resource usage (per node):**
+- CPU: ~50m (idle) to 100m (peak)
+- Memory: ~64Mi (idle) to 128Mi (peak)
 
 **Loki resource usage:**
-- CPU: ~100m (idle) to 500m (peak)
-- Memory: ~128Mi (idle) to 512Mi (peak)
+- CPU: ~100m (idle) to 300m (peak)
+- Memory: ~256Mi (SingleBinary mode)
 - Storage: Depends on log volume (~1-2GB per day typical)
 
 ## Log Retention Calculator

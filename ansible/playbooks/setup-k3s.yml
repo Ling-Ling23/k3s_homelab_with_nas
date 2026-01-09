@@ -41,6 +41,18 @@
         state: absent
       when: enable_swap == false
 
+    - name: Increase file descriptor limits for logging
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+        sysctl_file: /etc/sysctl.d/99-k3s-logging.conf
+      loop:
+        - { key: 'fs.file-max', value: '100000' }
+        - { key: 'fs.inotify.max_user_instances', value: '256' }
+        - { key: 'fs.inotify.max_user_watches', value: '524288' }
+
     - name: Check for cmdline.txt location
       stat:
         path: "{{ item }}"

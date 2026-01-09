@@ -20,6 +20,14 @@ loki:
           period: 24h
   limits_config:
     retention_period: 168h
+    max_query_parallelism: 2
+    max_query_series: 500
+    query_timeout: 2m
+    split_queries_by_interval: 24h
+  querier:
+    max_concurrent: 2
+  query_scheduler:
+    max_outstanding_requests_per_tenant: 100
 
 singleBinary:
   replicas: 1
@@ -29,15 +37,15 @@ singleBinary:
     size: 10Gi
   resources:
     limits:
-      cpu: 300m
-      memory: 256Mi
+      cpu: 500m
+      memory: 512Mi
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 100m
+      memory: 256Mi
   # Fix for ARM/jemalloc issues on Raspberry Pi
   extraEnv:
     - name: GOMEMLIMIT
-      value: "230MiB"
+      value: "460MiB"
 
 # Explicitly disable all scalable mode components
 read:
