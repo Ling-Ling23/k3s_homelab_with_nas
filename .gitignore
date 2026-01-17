@@ -34,7 +34,7 @@ venv/
 Thumbs.db
 
 # Secrets
-*secret*
 *token*
 !.gitkeep
 ansible/secrets/*
+.vaultpass

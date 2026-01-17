@@ -1,0 +1,58 @@
+---
+- name: Deploy Longhorn Storage
+  hosts: master
+  become: no
+  tasks:
+    - name: Check if Longhorn is already installed
+      shell: kubectl get namespace longhorn-system --ignore-not-found -o name
+      register: longhorn_ns
+      changed_when: false
+
+    - name: Install Longhorn using kubectl
+      shell: kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
+      when: longhorn_ns.stdout == ""
+      register: longhorn_install
+      changed_when: "'created' in longhorn_install.stdout or 'configured' in longhorn_install.stdout"
+
+    - name: Display Longhorn installation output
+      debug:
+        var: longhorn_install.stdout_lines
+      when: longhorn_ns.stdout == ""
+
+    - name: Wait for Longhorn namespace to be created
+      shell: kubectl get namespace longhorn-system -o name
+      register: ns_check
+      until: ns_check.stdout != ""
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Wait for Longhorn pods to be ready
+      shell: kubectl get pods -n longhorn-system --no-headers 2>/dev/null | grep -v -E '(Running|Completed)' || true
+      register: longhorn_pods
+      until: longhorn_pods.stdout == ""
+      retries: 60
+      delay: 10
+      changed_when: false
+
+    - name: Apply Longhorn StorageClass (2 replicas)
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/longhorn/longhorn-storageclass.yaml') | from_yaml }}"
+
+    - name: Verify Longhorn StorageClass
+      kubernetes.core.k8s_info:
+        kind: StorageClass
+        name: longhorn-2replica
+      register: longhorn_sc
+
+    - name: Display validation results
+      debug:
+        msg:
+          - "✅ Longhorn is running in namespace: longhorn-system"
+          - "✅ Longhorn pods are ready"
+          - "✅ StorageClass 'longhorn-2replica' is available"
+          - ""
+          - "Verify with: kubectl get storageclass longhorn-2replica"
+          - "Check pods: kubectl get pods -n longhorn-system"
+      when: longhorn_sc.resources | length > 0

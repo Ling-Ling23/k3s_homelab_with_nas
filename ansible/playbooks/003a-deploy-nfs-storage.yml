@@ -1,0 +1,93 @@
+---
+- name: Deploy NFS CSI Driver for Synology Storage
+  hosts: master
+  become: no
+  vars:
+    nfs_server: "192.168.0.197"  # Change to your Synology IP
+    nfs_path: "/volume1/k3s-storage"  # Change to your NFS share path
+    
+  tasks:
+    - name: Install NFS CSI Driver using official install script
+      shell: |
+        curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/install-driver.sh | bash -s master --
+      args:
+        executable: /bin/bash
+      register: nfs_install_result
+      changed_when: "'csi-nfs-node created' in nfs_install_result.stdout or 'csi-nfs-controller created' in nfs_install_result.stdout"
+
+    - name: Display NFS CSI Driver installation output
+      debug:
+        var: nfs_install_result.stdout_lines
+
+    - name: Wait for NFS CSI Driver pods to be ready
+      shell: kubectl get pods -n kube-system -l app.kubernetes.io/name=csi-driver-nfs --no-headers | grep -c Running || true
+      register: nfs_running_count
+      until: nfs_running_count.stdout | int >= 2
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Apply NFS StorageClass
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nfs/storageclass.yaml') | from_yaml }}"
+
+    - name: Verify NFS StorageClass
+      kubernetes.core.k8s_info:
+        kind: StorageClass
+        name: nfs-synology
+      register: storageclass_info
+
+    - name: Display StorageClass status
+      debug:
+        msg: "✅ StorageClass 'nfs-synology' is available"
+      when: storageclass_info.resources | length > 0
+
+    - name: Apply test PVC and pod
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nfs/test-pvc.yaml') | from_yaml_all }}"
+
+
+    - name: Wait for test PVC to be bound
+      kubernetes.core.k8s_info:
+        kind: PersistentVolumeClaim
+        name: test-nfs-pvc
+        namespace: default
+      register: test_pvc
+      until:
+        - test_pvc.resources is defined
+        - test_pvc.resources | length > 0
+        - test_pvc.resources[0].status.phase == "Bound"
+      retries: 20
+      delay: 3
+
+    - name: Wait for test pod to be running
+      kubernetes.core.k8s_info:
+        kind: Pod
+        name: test-nfs-pod
+        namespace: default
+      register: test_pod
+      until:
+        - test_pod.resources is defined
+        - test_pod.resources | length > 0
+        - test_pod.resources[0].status.phase == "Running"
+      retries: 20
+      delay: 3
+
+    - name: Get test pod logs
+      command: kubectl logs test-nfs-pod -n default
+      register: pod_logs
+      changed_when: false
+
+    - name: Display test results
+      debug:
+        msg:
+          - "✅ NFS Storage test completed successfully!"
+          - "Pod logs: {{ pod_logs.stdout_lines }}"
+
+    - name: Cleanup test resources
+      kubernetes.core.k8s:
+        state: absent
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nfs/test-pvc.yaml') | from_yaml_all }}"
+

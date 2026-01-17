@@ -1,0 +1,126 @@
+---
+- name: Deploy NGINX Ingress Controller with MetalLB
+  hosts: master
+  become: no
+  
+  tasks:
+    # Install MetalLB first (needed for LoadBalancer IPs)
+    - name: Check if MetalLB is already installed
+      shell: kubectl get namespace metallb-system --ignore-not-found -o name
+      register: metallb_ns
+      changed_when: false
+
+    - name: Install MetalLB
+      shell: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+      when: metallb_ns.stdout == ""
+      register: metallb_install
+      changed_when: "'created' in metallb_install.stdout or 'configured' in metallb_install.stdout"
+
+    - name: Wait for MetalLB controller to be ready
+      shell: kubectl get deployment controller -n metallb-system -o jsonpath='{.status.availableReplicas}'
+      register: metallb_ready
+      until: metallb_ready.stdout | int > 0
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Apply MetalLB IP pool configuration
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/metallb/metallb-config.yaml') | from_yaml_all }}"
+
+    - name: Display MetalLB status
+      debug:
+        msg: "✅ MetalLB installed with IP pool: 192.168.0.200-192.168.0.210"
+
+    # Install NGINX Ingress Controller
+    - name: Check if NGINX Ingress is already installed
+      shell: kubectl get namespace ingress-nginx --ignore-not-found -o name
+      register: nginx_ns
+      changed_when: false
+
+    - name: Install NGINX Ingress Controller
+      shell: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml
+      when: nginx_ns.stdout == ""
+      register: nginx_install
+      changed_when: "'created' in nginx_install.stdout or 'configured' in nginx_install.stdout"
+
+    - name: Wait for NGINX Ingress Controller to be ready
+      shell: kubectl get deployment ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.availableReplicas}'
+      register: nginx_ready
+      until: nginx_ready.stdout | int > 0
+      retries: 60
+      delay: 5
+      changed_when: false
+
+    - name: Get NGINX Ingress LoadBalancer IP
+      shell: kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+      register: nginx_lb_ip
+      until: nginx_lb_ip.stdout != ""
+      retries: 30
+      delay: 5
+      changed_when: false
+
+    - name: Display NGINX Ingress status
+      debug:
+        msg:
+          - "✅ NGINX Ingress Controller installed"
+          - "LoadBalancer IP: {{ nginx_lb_ip.stdout }}"
+          - ""
+          - "Add to your /etc/hosts (or C:\\Windows\\System32\\drivers\\etc\\hosts):"
+          - "{{ nginx_lb_ip.stdout }} dashboard.homelab.local"
+          - "{{ nginx_lb_ip.stdout }} grafana.homelab.local"
+          - "{{ nginx_lb_ip.stdout }} prometheus.homelab.local"
+          - "{{ nginx_lb_ip.stdout }} longhorn.homelab.local"
+
+    # Install Kubernetes Dashboard (optional)
+    - name: Check if Kubernetes Dashboard is already installed
+      shell: kubectl get namespace kubernetes-dashboard --ignore-not-found -o name
+      register: dashboard_ns
+      changed_when: false
+
+    - name: Install Kubernetes Dashboard
+      shell: kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+      when: dashboard_ns.stdout == ""
+      register: dashboard_install
+      changed_when: "'created' in dashboard_install.stdout or 'configured' in dashboard_install.stdout"
+
+    - name: Wait for Dashboard deployment to be ready
+      shell: kubectl get deployment kubernetes-dashboard -n kubernetes-dashboard -o jsonpath='{.status.availableReplicas}'
+      register: dashboard_ready
+      until: dashboard_ready.stdout | int > 0
+      retries: 30
+      delay: 5
+      changed_when: false
+      when: dashboard_ns.stdout == ""
+
+    - name: Apply admin user for dashboard
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nginx_ingress/dashboard-admin-user.yaml') | from_yaml_all }}"
+
+    - name: Apply Dashboard ingress
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nginx_ingress/dashboard-ingress.yaml') | from_yaml }}"
+
+    - name: Get Dashboard admin token
+      shell: kubectl get secret admin-user-token -n kubernetes-dashboard -o jsonpath='{.data.token}' | base64 -d
+      register: dashboard_token
+      changed_when: false
+
+    - name: Display setup completion
+      debug:
+        msg:
+          - "=========================================="
+          - "✅ MetalLB installed"
+          - "✅ NGINX Ingress Controller installed"
+          - "✅ Kubernetes Dashboard installed"
+          - "=========================================="
+          - ""
+          - "NGINX Ingress IP: {{ nginx_lb_ip.stdout }}"
+          - ""
+          - "Access Dashboard at: https://dashboard.homelab.local"
+          - "Dashboard Token: {{ dashboard_token.stdout }}"
+          - ""
+          - "Next: Deploy monitoring, applications, etc."

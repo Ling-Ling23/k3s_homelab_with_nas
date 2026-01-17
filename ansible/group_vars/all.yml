@@ -20,7 +20,7 @@ k3s_master_extra_args: >-
 k3s_worker_extra_args: ""
 
 # System configuration
-timezone: "America/New_York"  # Update to your timezone
+timezone: "America/New_York"
 enable_swap: false
 
 # Kubeconfig local path (where to save on your laptop)

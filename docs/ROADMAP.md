@@ -11,66 +11,37 @@
 - [x] Grafana dashboards
 - [x] cert-manager with self-signed CA
 - [x] TLS/SSL for all services
-- [x] SFTP auto-upload on save
+- [x] ArgoCD GitOps (deployed with Helm, demo app running)
+- [x] Centralized Logging (Loki + Promtail)
 
 ## 🎯 Priority Queue
 
-### 1. GitOps with ArgoCD ⭐ RECOMMENDED NEXT
-**Why:** Automate deployments, visualize cluster, rollback easily
-**Complexity:** Medium
-**Time:** 2-3 hours
+### 1. ~~GitOps with ArgoCD~~ ✅ COMPLETED
+**Status:** Deployed via Helm with custom values, demo app running at https://demo.home.local
+**What you learned:**
+- GitOps principles
+- Auto-sync from Git
+- Declarative deployments
+- ArgoCD Application CRDs
 
-**What you'll learn:**
-- Declarative deployment from Git
-- Continuous Delivery
-- Cluster visualization
-- Sync and rollback strategies
-
-**Resources needed:**
-- Git repository (already have)
-- 200MB storage
-
-**Setup:**
-```bash
-# Create k3s/argocd/ directory
-# Install ArgoCD
-# Connect to your Git repo
-# Deploy apps via ArgoCD
-```
+**Next:** Convert existing services to ArgoCD or set up GitHub Actions Runner
 
 ---
 
-### 2. Centralized Logging (Fluent Bit + Loki)
-**Why:** Search all logs in one place, complete observability
-**Complexity:** Medium
-**Time:** 1-2 hours
-
-**What you'll learn:**
-- Log processing and forwarding
-- Fluent Bit configuration
+### 2. ~~Centralized Logging (Loki + Promtail)~~ ✅ COMPLETED
+**Status:** Loki + Promtail deployed, integrated with Grafana
+**What you learned:**
+- Log aggregation with Loki
+- Log collection with Promtail
 - LogQL queries
-- Grafana Loki integration
-- Alert on log patterns
+- Grafana Loki datasource integration
+- Centralized log viewing
 
-**Resources needed:**
-- 5-10GB NFS storage for Loki
-- Integrates with existing Grafana
-
-**Components:**
-- Fluent Bit (log collector/forwarder - lightweight)
-- Loki (log aggregation backend)
-- Grafana (already installed)
-
-**Why Fluent Bit:**
-- Lightweight (~450KB memory footprint)
-- Better performance than Promtail
-- More flexible log processing
-- Built-in parsers for common formats
-- Can output to multiple destinations
+**Next:** GitHub Actions Runner or Backup & Disaster Recovery
 
 ---
 
-### 3. Backup & Disaster Recovery (Velero)
+### 3. Backup & Disaster Recovery (Velero) ⭐ RECOMMENDED NEXT
 **Why:** Protect your cluster, test disaster recovery
 **Complexity:** Medium
 **Time:** 2-3 hours
@@ -426,5 +397,5 @@
 
 ---
 
-**Last Updated:** January 3, 2026
-**Current Focus:** GitOps with ArgoCD
+**Last Updated:** January 9, 2026
+**Current Focus:** Backup & Disaster Recovery (Velero) or GitHub Actions Runner

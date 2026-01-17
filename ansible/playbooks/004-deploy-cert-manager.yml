@@ -1,0 +1,99 @@
+---
+- name: Install and Configure cert-manager
+  hosts: master
+  become: no
+  vars:
+    ca_secret_vault_file: "{{ playbook_dir }}/../ansible_vault/homelab-ca-secret.yml"
+  
+  tasks:
+    - name: Check if vaulted CA secret exists locally
+      stat:
+        path: "{{ ca_secret_vault_file }}"
+      register: vaulted_secret
+      delegate_to: localhost
+
+    - name: Install cert-manager CRDs and controller
+      shell: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
+      register: cert_manager_install
+      changed_when: "'created' in cert_manager_install.stdout or 'configured' in cert_manager_install.stdout"
+
+    - name: Display cert-manager installation output
+      debug:
+        var: cert_manager_install.stdout_lines
+
+    - name: Wait for cert-manager deployment to be ready
+      shell: kubectl get deployment cert-manager -n cert-manager -o jsonpath='{.status.availableReplicas}'
+      register: cert_manager_ready
+      until: cert_manager_ready.stdout | int > 0
+      retries: 60
+      delay: 5
+      changed_when: false
+
+    - name: Wait for cert-manager-webhook deployment to be ready
+      shell: kubectl get deployment cert-manager-webhook -n cert-manager -o jsonpath='{.status.availableReplicas}'
+      register: webhook_ready
+      until: webhook_ready.stdout | int > 0
+      retries: 60
+      delay: 5
+      changed_when: false
+
+    - name: Wait for cert-manager-cainjector deployment to be ready
+      shell: kubectl get deployment cert-manager-cainjector -n cert-manager -o jsonpath='{.status.availableReplicas}'
+      register: cainjector_ready
+      until: cainjector_ready.stdout | int > 0
+      retries: 60
+      delay: 5
+      changed_when: false
+
+    - name: Display cert-manager readiness
+      debug:
+        msg: "✅ cert-manager is ready"
+
+    - name: Restore existing CA secret if available
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', ca_secret_vault_file) | from_yaml }}"
+      when: vaulted_secret.stat.exists
+
+    - name: Apply ClusterIssuer and CA configuration
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/certs/cluster-issuer.yaml') | from_yaml_all }}"
+
+    - name: Wait for homelab CA certificate to be ready
+      shell: kubectl get certificate homelab-ca -n cert-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: ca_cert_ready
+      until: ca_cert_ready.stdout == "True"
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Export CA secret for backup
+      shell: kubectl get secret homelab-ca-secret -n cert-manager -o yaml
+      register: ca_secret_export
+      changed_when: false
+
+    - name: Save CA secret to local file
+      copy:
+        content: "{{ ca_secret_export.stdout }}"
+        dest: "{{ ca_secret_vault_file }}"
+        mode: '0600'
+      delegate_to: localhost
+      when: not vaulted_secret.stat.exists
+
+    - name: Encrypt CA secret with ansible-vault
+      shell: ansible-vault encrypt "{{ ca_secret_vault_file }}"
+      delegate_to: localhost
+      when: not vaulted_secret.stat.exists
+      register: vault_encrypt
+      failed_when: false
+
+    - name: Display setup completion
+      debug:
+        msg:
+          - "=========================================="
+          - "✅ cert-manager installed"
+          - "✅ Self-signed CA created"
+          - "✅ CA secret backed up to {{ ca_secret_vault_file }}"
+          - "=========================================="
+          - ""
