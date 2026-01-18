@@ -109,6 +109,11 @@
       register: dashboard_token
       changed_when: false
 
+    - name: Apply Longhorn Ingress
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/longhorn/longhorn-ingress.yaml') | from_yaml }}"
+
     - name: Display setup completion
       debug:
         msg:

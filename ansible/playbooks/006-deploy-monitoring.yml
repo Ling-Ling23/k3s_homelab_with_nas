@@ -1,0 +1,139 @@
+---
+- name: Deploy Monitoring Stack (Prometheus, Grafana, Alertmanager)
+  hosts: master
+  become: no
+  vars:
+    monitoring_namespace: monitoring
+    helm_repo_name: prometheus-community
+    helm_repo_url: https://prometheus-community.github.io/helm-charts
+    helm_chart: prometheus-community/kube-prometheus-stack
+    helm_release_name: kube-prometheus-stack
+    values_file: "{{ playbook_dir }}/../../k3s/monitoring/helm_values/prometheus-values.yaml"
+    
+  tasks:
+    - name: Add Prometheus Helm repository
+      kubernetes.core.helm_repository:
+        name: "{{ helm_repo_name }}"
+        repo_url: "{{ helm_repo_url }}"
+        state: present
+
+    - name: Update Helm repositories
+      command: helm repo update
+      changed_when: false
+
+    - name: Create monitoring namespace
+      kubernetes.core.k8s:
+        name: "{{ monitoring_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Check if monitoring stack is already installed
+      shell: helm list -n {{ monitoring_namespace }} | grep -q {{ helm_release_name }}
+      register: helm_check
+      failed_when: false
+      changed_when: false
+
+    - name: Copy Prometheus values file to remote host
+      copy:
+        src: "{{ values_file }}"
+        dest: /tmp/prometheus-values.yaml
+        mode: '0644'
+
+    - name: Install/Upgrade Prometheus Stack
+      kubernetes.core.helm:
+        name: "{{ helm_release_name }}"
+        chart_ref: "{{ helm_chart }}"
+        release_namespace: "{{ monitoring_namespace }}"
+        create_namespace: true
+        values_files:
+          - /tmp/prometheus-values.yaml
+        state: present
+        wait: true
+        wait_timeout: 10m
+
+    - name: Wait for Prometheus to be ready
+      kubernetes.core.k8s_info:
+        kind: StatefulSet
+        namespace: "{{ monitoring_namespace }}"
+        name: prometheus-{{ helm_release_name }}-prometheus
+      register: prometheus_statefulset
+      until: 
+        - prometheus_statefulset.resources | length > 0
+        - prometheus_statefulset.resources[0].status.readyReplicas is defined
+        - prometheus_statefulset.resources[0].status.readyReplicas == prometheus_statefulset.resources[0].status.replicas
+      retries: 30
+      delay: 10
+
+    - name: Wait for Grafana to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ monitoring_namespace }}"
+        name: "{{ helm_release_name }}-grafana"
+      register: grafana_deployment
+      until: 
+        - grafana_deployment.resources | length > 0
+        - grafana_deployment.resources[0].status.readyReplicas is defined
+        - grafana_deployment.resources[0].status.readyReplicas == grafana_deployment.resources[0].status.replicas
+      retries: 30
+      delay: 10
+
+    - name: Deploy Grafana dashboard configmap
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/monitoring/grafana-dashboard-configmap.yaml') | from_yaml }}"
+      when: lookup('file', playbook_dir + '/../../k3s/monitoring/grafana-dashboard-configmap.yaml', errors='ignore')
+
+    - name: Apply Prometheus rules
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/monitoring/prometheus-rules.yaml') | from_yaml }}"
+
+    - name: Apply monitoring ingress
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/monitoring/ingress.yaml') | from_yaml_all }}"
+
+    - name: Get Grafana admin password
+      shell: kubectl get secret -n {{ monitoring_namespace }} {{ helm_release_name }}-grafana -o jsonpath='{.data.admin-password}' | base64 -d
+      register: grafana_password
+      changed_when: false
+      failed_when: false
+
+    - name: Get Grafana service
+      kubernetes.core.k8s_info:
+        kind: Service
+        namespace: "{{ monitoring_namespace }}"
+        name: "{{ helm_release_name }}-grafana"
+      register: grafana_service
+
+    - name: Display monitoring stack info
+      debug:
+        msg:
+          - "=========================================="
+          - "✅ Prometheus Stack deployed successfully!"
+          - "=========================================="
+          - ""
+          - "Check status:"
+          - "  kubectl get pods -n {{ monitoring_namespace }}"
+          - ""
+          - "Access Grafana:"
+          - "  URL: http://grafana.homelab.local"
+          - "  Username: admin"
+          - "  Password: {{ grafana_password.stdout | default('admin') }}"
+          - ""
+          - "Access Prometheus (port-forward):"
+          - "  kubectl port-forward -n {{ monitoring_namespace }} svc/{{ helm_release_name }}-prometheus 9090:9090"
+          - "  URL: http://localhost:9090"
+          - ""
+          - "✅ Grafana dashboard has been deployed!"
+
+    - name: Get all ingresses
+      kubernetes.core.k8s_info:
+        kind: Ingress
+        namespace: ""
+      register: all_ingresses
+
+    - name: Display ingress URLs
+      debug:
+        msg: "Available ingress hosts: {{ all_ingresses.resources | map(attribute='spec') | map(attribute='rules') | flatten | map(attribute='host') | list }}"

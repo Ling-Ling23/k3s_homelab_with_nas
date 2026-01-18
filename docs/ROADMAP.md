@@ -16,6 +16,17 @@
 
 ## 🎯 Priority Queue
 
+### 0. Add MinIO (after 3x raspi)
+- S3-compatible API - Apps that need object storage (rare in homelab) - Want to learn S3 APIs (valid learning goal)
+- Backup target - For Longhorn/Velero cluster backups - Need cluster backups (Velero + MinIO for K8s backups)
+- Multi-cloud simulation - If learning cloud architectures
+- Application storage - Some apps prefer S3 over NFS (e.g., photo apps, ML models) - Run S3-dependent apps
+
+### 0. Secrets
+- Homelab: Learn all three (Sealed Secrets, ESO, Vault)
+- Work: Pick one primary (usually ESO + Vault or Cloud)
+- Start with Sealed Secrets, add ESO + Vault
+
 ### 1. ~~GitOps with ArgoCD~~ ✅ COMPLETED
 **Status:** Deployed via Helm with custom values, demo app running at https://demo.home.local
 **What you learned:**

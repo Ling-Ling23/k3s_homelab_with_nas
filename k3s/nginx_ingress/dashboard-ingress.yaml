@@ -6,8 +6,13 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "homelab-ca-issuer"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - dashboard.homelab.local
+    secretName: dashboard-tls
   rules:
   - host: dashboard.homelab.local
     http:

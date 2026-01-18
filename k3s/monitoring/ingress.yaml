@@ -4,8 +4,14 @@ kind: Ingress
 metadata:
   name: grafana-ingress
   namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: "homelab-ca-issuer"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - grafana.homelab.local
+    secretName: grafana-tls
   rules:
   - host: grafana.homelab.local
     http:
@@ -23,8 +29,14 @@ kind: Ingress
 metadata:
   name: prometheus-ingress
   namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: "homelab-ca-issuer"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - prometheus.homelab.local
+    secretName: prometheus-tls
   rules:
   - host: prometheus.homelab.local
     http:
@@ -42,8 +54,14 @@ kind: Ingress
 metadata:
   name: alertmanager-ingress
   namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: "homelab-ca-issuer"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - alertmanager.homelab.local
+    secretName: alertmanager-tls
   rules:
   - host: alertmanager.homelab.local
     http:
