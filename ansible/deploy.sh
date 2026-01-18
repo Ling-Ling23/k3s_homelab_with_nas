@@ -6,4 +6,5 @@
 #ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/004-deploy-cert-manager.yml --vault-password-file ansible/.vaultpass
 #ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/005-deploy-metallb-nginx-ingress.yml
 #ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/006-deploy-monitoring.yml
-ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/007-deploy-logging.yml
+#ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/007-deploy-logging.yml
+ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/008-deploy-sealed-secrets.yml # --vault-password-file secrets/.vaultpass
