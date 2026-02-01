@@ -1,0 +1,46 @@
+---
+# Master Deployment Playbook - Full K3s Homelab Infrastructure
+# Usage (from ansible/ directory):
+#   ansible-playbook -e @group_vars/all.yml -e @ansible_vault/k3s-secrets.yml -i inventory/hosts.yml playbooks/master-deploy-k3s.yml --ask-vault-pass
+# 
+# Note: -i inventory/hosts.yml is required because ansible.cfg is ignored in world-writable WSL directories
+# Note: --ask-vault-pass is simpler than dealing with vault password file permissions in WSL
+# 
+# This playbook deploys the complete K3s homelab stack in the correct order:
+#   1. Raspberry Pi base setup
+#   2. K3s cluster installation
+#   3. Storage (Longhorn)
+#   4. Certificate management
+#   5. Ingress and load balancing
+#   6. Monitoring stack
+#   7. Logging stack
+#   8. Sealed secrets
+
+
+#- name: Setup K3s cluster
+#  import_playbook: 001-setup-k3s.yml
+#  tags: ['k3s', 'cluster']
+
+- name: Deploy Longhorn storage
+  import_playbook: 003b-deploy-longhorn-storage.yml
+  tags: ['storage', 'longhorn']
+
+- name: Deploy cert-manager
+  import_playbook: 004-deploy-cert-manager.yml
+  tags: ['certs', 'security']
+
+- name: Deploy MetalLB and NGINX Ingress
+  import_playbook: 005-deploy-metallb-nginx-ingress.yml
+  tags: ['networking', 'ingress']
+
+- name: Deploy monitoring stack
+  import_playbook: 006-deploy-monitoring.yml
+  tags: ['monitoring', 'observability']
+
+- name: Deploy logging stack
+  import_playbook: 007-deploy-logging.yml
+  tags: ['logging', 'observability']
+
+- name: Deploy sealed secrets
+  import_playbook: 008-deploy-sealed-secrets.yml
+  tags: ['secrets', 'security']

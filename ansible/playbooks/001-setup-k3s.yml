@@ -68,37 +68,31 @@
       debug:
         msg: "Helm installed: {{ helm_version.stdout }}"
 
-    - name: Fetch kubeconfig to local machine
-      fetch:
-        src: /etc/rancher/k3s/k3s.yaml
-        dest: /tmp/k3s-kubeconfig
-        flat: yes
-
-- name: Configure local kubeconfig
-  hosts: localhost
-  gather_facts: no
-  connection: local
-  tasks:
-    - name: Read kubeconfig
+    - name: Read kubeconfig from master
       slurp:
-        src: /tmp/k3s-kubeconfig
+        src: /etc/rancher/k3s/k3s.yaml
       register: kubeconfig_content
 
-    - name: Ensure .kube directory exists
+    - name: Ensure local .kube directory exists
       file:
         path: "{{ (kubeconfig_local_path | expanduser) | dirname }}"
         state: directory
         mode: '0755'
+      delegate_to: localhost
+      become: no
 
-    - name: Update kubeconfig with correct server address
+    - name: Update kubeconfig with correct server address and save locally
       copy:
-        content: "{{ kubeconfig_content.content | b64decode | regex_replace('127.0.0.1', k3s_server_ip) }}"
+        content: "{{ kubeconfig_content.content | b64decode | regex_replace('127.0.0.1', ansible_host) }}"
         dest: "{{ kubeconfig_local_path | expanduser }}"
         mode: '0600'
+      delegate_to: localhost
+      become: no
 
     - name: Display kubeconfig location
       debug:
         msg: "Kubeconfig saved to {{ kubeconfig_local_path | expanduser }}"
+      delegate_to: localhost
 
 - name: Install k3s on worker nodes
   hosts: workers

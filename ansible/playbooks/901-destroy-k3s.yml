@@ -1,0 +1,205 @@
+---
+- name: Destroy K3s Cluster - Complete Removal
+  hosts: k3s_cluster
+  become: yes
+  gather_facts: yes
+  vars:
+    backup_dir: "/home/{{ ansible_user }}/k3s-backup-{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+    remove_longhorn_data: false  # Set to true to delete Longhorn storage data
+    
+  tasks:
+    - name: Display warning message
+      pause:
+        prompt: |
+          ========================================
+          K3s COMPLETE DESTRUCTION PLAYBOOK
+          ========================================
+          
+          ⚠️  WARNING ⚠️
+          This will completely remove:
+            - K3s cluster
+            - All deployments (ArgoCD, Monitoring, Logging, etc.)
+            - Longhorn storage data (if enabled)
+            - All PVCs and data
+            - Configuration files
+            - Network configuration
+          
+          Press Ctrl+C and then 'A' to abort
+          Press ENTER to continue with destruction
+      run_once: true
+      delegate_to: localhost
+
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Backup kubeconfig (master only)
+      copy:
+        src: "/home/{{ ansible_user }}/.kube/config"
+        dest: "{{ backup_dir }}/kubeconfig.yaml"
+        remote_src: yes
+      when: 
+        - "'master' in group_names"
+        - ansible_check_mode == false
+      ignore_errors: yes
+
+    - name: Backup sealed secrets keys (master only)
+      shell: |
+        if command -v kubectl &> /dev/null; then
+          kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > {{ backup_dir }}/sealed-secrets-keys.yaml 2>/dev/null || true
+        fi
+      when: "'master' in group_names"
+      ignore_errors: yes
+
+    - name: Backup Longhorn directory structure
+      shell: ls -la /var/lib/longhorn > {{ backup_dir }}/longhorn-structure.txt 2>/dev/null || true
+      ignore_errors: yes
+
+    - name: Stop K3s services - run killall script
+      command: /usr/local/bin/k3s-killall.sh
+      ignore_errors: yes
+      register: killall_result
+
+    - name: Uninstall K3s server (master nodes)
+      command: /usr/local/bin/k3s-uninstall.sh
+      when: "'master' in group_names"
+      ignore_errors: yes
+      register: uninstall_server
+
+    - name: Uninstall K3s agent (worker nodes)
+      command: /usr/local/bin/k3s-agent-uninstall.sh
+      when: "'workers' in group_names"
+      ignore_errors: yes
+      register: uninstall_agent
+
+    - name: Remove K3s directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/rancher/k3s
+        - /etc/rancher/k3s
+        - /etc/rancher
+        - "/home/{{ ansible_user }}/.kube"
+        - /var/lib/rancher
+        - /opt/cni
+        - /etc/cni
+
+    - name: Remove Longhorn data directory
+      file:
+        path: /var/lib/longhorn
+        state: absent
+      when: remove_longhorn_data | bool
+
+    - name: Flush iptables rules
+      shell: |
+        iptables -F
+        iptables -t nat -F
+        iptables -t mangle -F
+        iptables -X
+      ignore_errors: yes
+
+    - name: Get K3s/CNI network interfaces
+      shell: ip link show | grep -E 'cni|flannel|veth' | awk '{print $2}' | sed 's/:.*//'
+      register: k3s_interfaces
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Remove K3s network interfaces
+      shell: ip link delete {{ item }}
+      loop: "{{ k3s_interfaces.stdout_lines }}"
+      when: k3s_interfaces.stdout_lines | length > 0
+      ignore_errors: yes
+
+    - name: Get K3s related mounts
+      shell: mount | grep -E '/var/lib/rancher|/run/k3s' | awk '{print $3}'
+      register: k3s_mounts
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Unmount K3s filesystems
+      mount:
+        path: "{{ item }}"
+        state: unmounted
+      loop: "{{ k3s_mounts.stdout_lines }}"
+      when: k3s_mounts.stdout_lines | length > 0
+      ignore_errors: yes
+
+    - name: Remove systemd service files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/k3s.service
+        - /etc/systemd/system/k3s-agent.service
+        - /etc/systemd/system/k3s-node.service
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Remove pod and container logs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/log/pods
+        - /var/log/containers
+
+    - name: Clean up temporary files
+      shell: |
+        find /tmp -name 'k3s*' -delete 2>/dev/null || true
+        find /tmp -name 'etcd*' -delete 2>/dev/null || true
+      ignore_errors: yes
+
+    - name: Remove UFW rules for K3s (if UFW is installed)
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        delete: yes
+      loop:
+        - '6443'
+        - '10250'
+        - '2379'
+        - '2380'
+      when: ansible_facts.services['ufw.service'] is defined
+      ignore_errors: yes
+
+    - name: Display completion message
+      debug:
+        msg:
+          - "=========================================="
+          - "K3s DESTRUCTION COMPLETE!"
+          - "=========================================="
+          - ""
+          - "Summary:"
+          - "  - K3s cluster destroyed on {{ inventory_hostname }}"
+          - "  - All data removed (except NFS on Synology)"
+          - "  - Network configuration cleaned"
+          - "  - System ready for fresh install"
+          - ""
+          - "Backups saved to: {{ backup_dir }}"
+          - ""
+          - "Reboot recommended: sudo reboot"
+
+- name: Final recommendations
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Show next steps
+      debug:
+        msg:
+          - ""
+          - "=========================================="
+          - "ALL NODES DESTROYED"
+          - "=========================================="
+          - ""
+          - "To reinstall K3s, run:"
+          - "  ansible-playbook -i inventory/hosts.yml playbooks/001-setup-k3s.yml"
+          - ""
+          - "It is STRONGLY recommended to reboot all nodes:"
+          - "  ansible k3s_cluster -i inventory/hosts.yml -b -m reboot"

@@ -1,0 +1,13 @@
+---
+# Master Deployment Playbook - Raspberry Pi Base Setup
+# Usage (from ansible/ directory):
+#   ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/master-deploy-setup-raspi.yml
+# 
+# Note: -e @group_vars/all.yml is required when running from WSL with Windows paths
+# 
+# This playbook deploys the Raspberry Pi base setup:
+#   1. Raspberry Pi base setup
+
+- name: Setup Raspberry Pi nodes
+  import_playbook: 000-setup-raspi.yml
+  tags: ['base', 'raspi']
