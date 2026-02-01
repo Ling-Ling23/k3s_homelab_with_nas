@@ -23,6 +23,7 @@
 - Application storage - Some apps prefer S3 over NFS (e.g., photo apps, ML models) - Run S3-dependent apps
 
 ### 0. Secrets
+ SEALED SECRETS FOR APPS, ANSIBLE SECRETS FOR INFRA
 - Homelab: Learn all three (Sealed Secrets, ESO, Vault)
 - Work: Pick one primary (usually ESO + Vault or Cloud)
 - Start with Sealed Secrets, add ESO + Vault

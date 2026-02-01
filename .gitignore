@@ -43,3 +43,6 @@ ansible/secrets/*
 k3s/sealed-secrets/sealed-secrets-key-backup.yaml
 # Encrypted version with Ansible Vault is OK:
 # !k3s/sealed-secrets/sealed-secrets-key-backup-vault.yml
+
+# study materials
+study_materials/*

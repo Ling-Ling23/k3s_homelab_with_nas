@@ -147,22 +147,25 @@
           
           # Kubectl aliases
           alias k='kubectl'
-          alias kg='kubectl get'
+          alias kaf='kubectl apply -f'
+          alias kctx='kubectl config get-contexts'
           alias kd='kubectl describe'
-          alias kdel='kubectl delete'
-          alias ka='kubectl apply -f'
-          alias kl='kubectl logs'
-          alias klf='kubectl logs -f'
+          alias ke='kubectl explain'
           alias kex='kubectl exec -it'
+          alias kg='kubectl get'
+          alias kgds='kubectl get daemonsets'
+          alias kgj='kubectl get jobs'
           alias kgp='kubectl get pods'
           alias kgpa='kubectl get pods -A'
           alias kgs='kubectl get services'
-          alias kgsa='kubectl get services -A'
           alias kgn='kubectl get nodes'
-          alias kgns='kubectl get namespaces'
-          alias kctx='kubectl config get-contexts'
-          alias kns='kubectl config set-context --current --namespace'
-          
+          alias kgrs='kubectl get rs'
+          alias kl='kubectl logs'
+          alias klf='kubectl logs -f'
+          alias watch-pods='watch kubectl get pods -A'
+          alias k3s-status='systemctl status k3s'
+          alias k3s-logs='journalctl -u k3s -f'
+
           # Kubectl shortcuts with watch
           alias watch-pods='watch kubectl get pods -A'
           alias watch-nodes='watch kubectl get nodes'
@@ -226,17 +229,25 @@
         block: |
           # Kubectl aliases
           alias k='kubectl'
-          alias kg='kubectl get'
+          alias kaf='kubectl apply -f'
+          alias kctx='kubectl config get-contexts'
           alias kd='kubectl describe'
+          alias ke='kubectl explain'
+          alias kex='kubectl exec -it'
+          alias kg='kubectl get'
+          alias kgds='kubectl get daemonsets'
+          alias kgj='kubectl get jobs'
           alias kgp='kubectl get pods'
           alias kgpa='kubectl get pods -A'
           alias kgs='kubectl get services'
           alias kgn='kubectl get nodes'
+          alias kgrs='kubectl get rs'
           alias kl='kubectl logs'
           alias klf='kubectl logs -f'
           alias watch-pods='watch kubectl get pods -A'
           alias k3s-status='systemctl status k3s'
           alias k3s-logs='journalctl -u k3s -f'
+
 
     - name: Ensure root .bash_aliases is sourced
       lineinfile:
