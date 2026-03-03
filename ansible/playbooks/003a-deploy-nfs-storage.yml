@@ -20,9 +20,9 @@
         var: nfs_install_result.stdout_lines
 
     - name: Wait for NFS CSI Driver pods to be ready
-      shell: kubectl get pods -n kube-system -l app.kubernetes.io/name=csi-driver-nfs --no-headers | grep -c Running || true
+      shell: kubectl get pods -n kube-system | grep -E 'csi-nfs-(node|controller)' | grep -c Running || echo 0
       register: nfs_running_count
-      until: nfs_running_count.stdout | int >= 2
+      until: nfs_running_count.stdout | int >= 4
       retries: 30
       delay: 5
       changed_when: false

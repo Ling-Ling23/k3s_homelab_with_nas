@@ -49,10 +49,23 @@
       debug:
         msg: "✅ cert-manager is ready"
 
+    - name: Copy vaulted CA secret to temp location
+      copy:
+        content: "{{ lookup('file', ca_secret_vault_file) }}"
+        dest: /tmp/ca-secret-restore.yaml
+        mode: '0600'
+      when: vaulted_secret.stat.exists
+
     - name: Restore existing CA secret if available
-      kubernetes.core.k8s:
-        state: present
-        definition: "{{ lookup('file', ca_secret_vault_file) | from_yaml }}"
+      shell: kubectl apply -f /tmp/ca-secret-restore.yaml
+      when: vaulted_secret.stat.exists
+      register: restore_result
+      changed_when: "'created' in restore_result.stdout or 'configured' in restore_result.stdout"
+
+    - name: Remove temp file
+      file:
+        path: /tmp/ca-secret-restore.yaml
+        state: absent
       when: vaulted_secret.stat.exists
 
     - name: Apply ClusterIssuer and CA configuration
