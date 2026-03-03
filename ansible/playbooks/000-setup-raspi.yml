@@ -182,6 +182,7 @@
           alias watch-pods='watch kubectl get pods -A'
           alias k3s-status='systemctl status k3s'
           alias k3s-logs='journalctl -u k3s -f'
+          alias kgpn='kubectl get pods -A --field-selector=status.phase!=Running'
 
           # Kubectl shortcuts with watch
           alias watch-pods='watch kubectl get pods -A'
