@@ -1,7 +1,7 @@
 # K3s Homelab - Next Steps & Roadmap
 
 ## ✅ Completed
-- [x] K3s cluster setup
+- [x] K3s cluster setup (Raspberry Pi x3, single master)
 - [x] Longhorn storage (distributed)
 - [x] NFS storage (Synology)
 - [x] MetalLB load balancer
@@ -13,6 +13,7 @@
 - [x] TLS/SSL for all services
 - [x] ArgoCD GitOps (deployed with Helm, demo app running)
 - [x] Centralized Logging (Loki + Promtail)
+- [x] Sealed Secrets (controller deployed, kubeseal installed, keys backed up & vault-encrypted)
 
 ## 🎯 Priority Queue
 
@@ -111,19 +112,15 @@
 
 ---
 
-### 6. Secret Management (Sealed Secrets or External Secrets)
-**Why:** Don't commit passwords to Git (needed for GitOps)
-**Complexity:** Medium
-**Time:** 1-2 hours
+### 6. ~~Secret Management (Sealed Secrets)~~ ✅ COMPLETED
+**Status:** Sealed Secrets controller deployed in `kube-system`, kubeseal CLI installed on cluster nodes, controller TLS keypair backed up locally and encrypted in Ansible Vault.
+**What you learned:**
+- Encrypted secrets safe for Git commits
+- Sealed Secrets controller and kubeseal workflow
+- Key backup and disaster recovery for secrets
+- Ansible Vault for encrypting sensitive backup files
 
-**What you'll learn:**
-- Encrypted secrets in Git
-- Secret rotation
-- External secret providers
-
-**Options:**
-- Sealed Secrets (simpler)
-- External Secrets Operator (more powerful)
+**Next:** External Secrets Operator (ESO) + Vault if you need dynamic secret rotation, or skip to Authelia/Tailscale
 
 ---
 
@@ -346,25 +343,25 @@
 
 ## 📋 Recommended Learning Path
 
-### Phase 1: DevOps Fundamentals (Now - Week 2)
+### Phase 1: DevOps Fundamentals ✅ COMPLETE
 1. ✅ GitOps with ArgoCD
-2. ✅ Centralized Logging (Loki)
-3. ✅ Backup & Disaster Recovery (Velero)
+2. ✅ Centralized Logging (Loki + Promtail)
+3. ✅ Secret Management (Sealed Secrets)
 
-### Phase 2: Security & Access (Week 3-4)
-4. ✅ Secret Management
-5. ✅ External Access (Tailscale)
-6. ✅ SSO/Authentication (Authelia)
+### Phase 2: Security & Access (Current)
+4. ⬜ Backup & Disaster Recovery (Velero) ⭐ NEXT
+5. ⬜ External Access (Tailscale)
+6. ⬜ SSO/Authentication (Authelia)
 
 ### Phase 3: Advanced Infrastructure (Month 2)
-7. ✅ Private Container Registry
-8. ✅ CI/CD Pipeline
-9. ✅ Database Operator
+7. ⬜ Private Container Registry (Harbor)
+8. ⬜ CI/CD Pipeline (GitHub Actions Runner)
+9. ⬜ Database Operator (CloudNativePG)
 
 ### Phase 4: Production-Grade (Month 3+)
-10. ✅ Distributed Tracing
-11. ✅ Policy Management
-12. ✅ Service Mesh (when needed)
+10. ⬜ Distributed Tracing (Jaeger/Tempo)
+11. ⬜ Policy Management (OPA Gatekeeper)
+12. ⬜ Service Mesh (Linkerd - when needed)
 
 ### Side Projects (Anytime)
 - Media Server Stack
@@ -409,5 +406,5 @@
 
 ---
 
-**Last Updated:** January 9, 2026
-**Current Focus:** Backup & Disaster Recovery (Velero) or GitHub Actions Runner
+**Last Updated:** March 3, 2026
+**Current Focus:** Backup & Disaster Recovery (Velero) — protect cluster data before adding more services

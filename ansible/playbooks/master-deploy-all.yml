@@ -15,7 +15,7 @@
 #   6. Monitoring stack
 #   7. Logging stack
 #   8. Sealed secrets
-
+#   9. ArgoCD GitOps
 
 - name: Setup K3s cluster
   import_playbook: 001-setup-k3s.yml
@@ -44,3 +44,7 @@
 - name: Deploy sealed secrets
   import_playbook: 008-deploy-sealed-secrets.yml
   tags: ['secrets', 'security']
+
+- name: Deploy ArgoCD
+  import_playbook: 009-deploy-argocd.yml
+  tags: ['argocd', 'gitops']
