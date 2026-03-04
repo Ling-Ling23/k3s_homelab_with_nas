@@ -1,0 +1,120 @@
+---
+- name: Deploy Logging Stack (Loki + Promtail)
+  hosts: master
+  become: no
+  vars:
+    logging_namespace: logging
+    helm_repo_name: grafana
+    helm_repo_url: https://grafana.github.io/helm-charts
+    loki_chart: grafana/loki
+    promtail_chart: grafana/promtail
+    loki_release_name: loki
+    promtail_release_name: promtail
+    loki_values_file: "{{ playbook_dir }}/../../k3s/logging/helm_values/loki-values.yaml"
+    promtail_values_file: "{{ playbook_dir }}/../../k3s/logging/helm_values/promtail-values.yaml"
+    
+  tasks:
+    - name: Add Grafana Helm repository
+      kubernetes.core.helm_repository:
+        name: "{{ helm_repo_name }}"
+        repo_url: "{{ helm_repo_url }}"
+        state: present
+
+    - name: Update Helm repositories
+      command: helm repo update
+      changed_when: false
+
+    - name: Create logging namespace
+      kubernetes.core.k8s:
+        name: "{{ logging_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Copy Loki values file to remote host
+      copy:
+        src: "{{ loki_values_file }}"
+        dest: /tmp/loki-values.yaml
+        mode: '0644'
+
+    - name: Install/Upgrade Loki
+      kubernetes.core.helm:
+        name: "{{ loki_release_name }}"
+        chart_ref: "{{ loki_chart }}"
+        release_namespace: "{{ logging_namespace }}"
+        create_namespace: false
+        values_files:
+          - /tmp/loki-values.yaml
+        state: present
+        wait: true
+        wait_timeout: 10m
+
+    - name: Wait for Loki pods to be ready
+      shell: kubectl get pods -n {{ logging_namespace }} -l app.kubernetes.io/name=loki --no-headers 2>/dev/null | grep -v -E '(Running|Completed)' || true
+      register: loki_pods
+      until: loki_pods.stdout == ""
+      retries: 60
+      delay: 5
+      changed_when: false
+      failed_when: false
+
+    - name: Display Loki status
+      shell: kubectl get pods -n {{ logging_namespace }} -l app.kubernetes.io/name=loki
+      register: loki_status
+      changed_when: false
+
+    - name: Show Loki pods
+      debug:
+        var: loki_status.stdout_lines
+
+    - name: Copy Promtail values file to remote host
+      copy:
+        src: "{{ promtail_values_file }}"
+        dest: /tmp/promtail-values.yaml
+        mode: '0644'
+
+    - name: Install/Upgrade Promtail
+      kubernetes.core.helm:
+        name: "{{ promtail_release_name }}"
+        chart_ref: "{{ promtail_chart }}"
+        release_namespace: "{{ logging_namespace }}"
+        create_namespace: false
+        values_files:
+          - /tmp/promtail-values.yaml
+        state: present
+        wait: true
+        wait_timeout: 5m
+
+    - name: Apply Loki datasource to Grafana
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/logging/loki-datasource.yaml') | from_yaml }}"
+      when: lookup('file', playbook_dir + '/../../k3s/logging/loki-datasource.yaml', errors='ignore')
+
+    - name: Apply Loki dashboard to Grafana
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/logging/loki-dashboard.yaml') | from_yaml }}"
+      when: lookup('file', playbook_dir + '/../../k3s/logging/loki-dashboard.yaml', errors='ignore')
+
+    - name: Display logging stack completion
+      debug:
+        msg:
+          - "=========================================="
+          - "✅ Logging Stack deployed successfully!"
+          - "=========================================="
+          - ""
+          - "Components installed:"
+          - "  ✅ Loki (log aggregation)"
+          - "  ✅ Promtail (log collection)"
+          - ""
+          - "Next steps:"
+          - "1. Loki datasource added to Grafana"
+          - "   - URL: http://loki-gateway.{{ logging_namespace }}.svc.cluster.local"
+          - ""
+          - "2. Access Grafana and explore logs:"
+          - "   - URL: https://grafana.homelab.local"
+          - "   - Go to Explore → Select Loki datasource"
+          - ""
+          - "Check status:"
+          - "  kubectl get pods -n {{ logging_namespace }}"

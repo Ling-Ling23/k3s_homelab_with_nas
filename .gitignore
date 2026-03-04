@@ -34,7 +34,15 @@ venv/
 Thumbs.db
 
 # Secrets
-*secret*
 *token*
 !.gitkeep
 ansible/secrets/*
+.vaultpass
+
+# Sealed Secrets - plain keys should never be committed
+k3s/sealed-secrets/sealed-secrets-key-backup.yaml
+# Encrypted version with Ansible Vault is OK:
+# !k3s/sealed-secrets/sealed-secrets-key-backup-vault.yml
+
+# study materials
+study_materials/*

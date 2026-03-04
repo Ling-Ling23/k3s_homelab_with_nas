@@ -5,8 +5,8 @@ metadata:
   name: nfs-synology
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: 192.168.0.191  # Change to your Synology IP
-  share: /volume1/k3s-storage  # Change to your NFS share path
+  server: 192.168.0.191
+  share: /volume1/k3s-storage  # NFS share path
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
 allowVolumeExpansion: true

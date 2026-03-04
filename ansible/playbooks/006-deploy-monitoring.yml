@@ -8,7 +8,7 @@
     helm_repo_url: https://prometheus-community.github.io/helm-charts
     helm_chart: prometheus-community/kube-prometheus-stack
     helm_release_name: kube-prometheus-stack
-    values_file: "{{ playbook_dir }}/../../k3s/monitoring/prometheus-values.yaml"
+    values_file: "{{ playbook_dir }}/../../k3s/monitoring/helm_values/prometheus-values.yaml"
     
   tasks:
     - name: Add Prometheus Helm repository
@@ -34,6 +34,12 @@
       failed_when: false
       changed_when: false
 
+    - name: Copy Prometheus values file to remote host
+      copy:
+        src: "{{ values_file }}"
+        dest: /tmp/prometheus-values.yaml
+        mode: '0644'
+
     - name: Install/Upgrade Prometheus Stack
       kubernetes.core.helm:
         name: "{{ helm_release_name }}"
@@ -41,7 +47,7 @@
         release_namespace: "{{ monitoring_namespace }}"
         create_namespace: true
         values_files:
-          - "{{ values_file }}"
+          - /tmp/prometheus-values.yaml
         state: present
         wait: true
         wait_timeout: 10m
@@ -72,6 +78,28 @@
       retries: 30
       delay: 10
 
+    - name: Deploy Grafana dashboard configmap
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/monitoring/grafana-dashboard-configmap.yaml') | from_yaml }}"
+      when: lookup('file', playbook_dir + '/../../k3s/monitoring/grafana-dashboard-configmap.yaml', errors='ignore')
+
+    - name: Apply Prometheus rules
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/monitoring/prometheus-rules.yaml') | from_yaml }}"
+
+    - name: Apply monitoring ingress
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', playbook_dir + '/../../k3s/monitoring/ingress.yaml') | from_yaml_all }}"
+
+    - name: Get Grafana admin password
+      shell: kubectl get secret -n {{ monitoring_namespace }} {{ helm_release_name }}-grafana -o jsonpath='{.data.admin-password}' | base64 -d
+      register: grafana_password
+      changed_when: false
+      failed_when: false
+
     - name: Get Grafana service
       kubernetes.core.k8s_info:
         kind: Service
@@ -82,30 +110,23 @@
     - name: Display monitoring stack info
       debug:
         msg:
-          - "Monitoring stack deployed successfully!"
-          - "Grafana URL: http://grafana.homelab.local"
-          - "Prometheus URL: Access via port-forward: kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090"
-          - "Default Grafana credentials: admin / admin (change this!)"
-
-- name: Deploy Longhorn and NGINX Ingress configurations
-  hosts: master
-  become: no
-  tasks:
-    - name: Apply Longhorn StorageClass (2 replicas)
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ playbook_dir }}/../../k3s/longhorn/longhorn-storageclass.yaml"
-      when: lookup('file', playbook_dir + '/../../k3s/longhorn/longhorn-storageclass.yaml', errors='ignore') | default(false)
-
-    - name: Apply Longhorn Ingress
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ playbook_dir }}/../../k3s/longhorn/longhorn-ingress.yaml"
-
-    - name: Apply Dashboard Ingress
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ playbook_dir }}/../../k3s/nginx_ingress/dashboard-ingress.yaml"
+          - "=========================================="
+          - "✅ Prometheus Stack deployed successfully!"
+          - "=========================================="
+          - ""
+          - "Check status:"
+          - "  kubectl get pods -n {{ monitoring_namespace }}"
+          - ""
+          - "Access Grafana:"
+          - "  URL: http://grafana.homelab.local"
+          - "  Username: admin"
+          - "  Password: {{ grafana_password.stdout | default('admin') }}"
+          - ""
+          - "Access Prometheus (port-forward):"
+          - "  kubectl port-forward -n {{ monitoring_namespace }} svc/{{ helm_release_name }}-prometheus 9090:9090"
+          - "  URL: http://localhost:9090"
+          - ""
+          - "✅ Grafana dashboard has been deployed!"
 
     - name: Get all ingresses
       kubernetes.core.k8s_info:
@@ -115,4 +136,4 @@
 
     - name: Display ingress URLs
       debug:
-        msg: "{{ all_ingresses.resources | map(attribute='spec') | map(attribute='rules') | flatten | map(attribute='host') | list }}"
+        msg: "Available ingress hosts: {{ all_ingresses.resources | map(attribute='spec') | map(attribute='rules') | flatten | map(attribute='host') | list }}"

@@ -31,6 +31,9 @@ config:
       - job_name: kubernetes-pods
         pipeline_stages:
           - cri: {}
+          - drop:
+              older_than: 168h
+              drop_counter_reason: entry_too_old
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:

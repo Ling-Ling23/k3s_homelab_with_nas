@@ -1,0 +1,114 @@
+---
+- name: Deploy ArgoCD
+  hosts: master
+  become: no
+  vars:
+    namespace: argocd
+    release_name: argocd
+    helm_repo_name: argo
+    helm_repo_url: https://argoproj.github.io/argo-helm
+    chart_name: argo/argo-cd
+    values_file: "{{ playbook_dir }}/../../k3s/argocd/helm_values/argocd-values.yaml"
+    apps_dir: "{{ playbook_dir }}/../../k3s/argocd/apps"
+
+  tasks:
+    - name: Add ArgoCD Helm repository
+      kubernetes.core.helm_repository:
+        name: "{{ helm_repo_name }}"
+        repo_url: "{{ helm_repo_url }}"
+        state: present
+
+    - name: Update Helm repositories
+      command: helm repo update
+      changed_when: false
+
+    - name: Create ArgoCD namespace
+      kubernetes.core.k8s:
+        name: "{{ namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Copy ArgoCD values file to remote host
+      copy:
+        src: "{{ values_file }}"
+        dest: /tmp/argocd-values.yaml
+        mode: '0644'
+
+    - name: Install/Upgrade ArgoCD
+      kubernetes.core.helm:
+        name: "{{ release_name }}"
+        chart_ref: "{{ chart_name }}"
+        release_namespace: "{{ namespace }}"
+        create_namespace: false
+        values_files:
+          - /tmp/argocd-values.yaml
+        state: present
+        wait: true
+        wait_timeout: 10m
+
+    - name: Wait for ArgoCD server to be ready
+      shell: kubectl get deployment argocd-server -n {{ namespace }} -o jsonpath='{.status.availableReplicas}'
+      register: argocd_ready
+      until: argocd_ready.stdout | int > 0
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Verify all ArgoCD pods are running
+      shell: kubectl get pods -n {{ namespace }} --field-selector=status.phase!=Running --no-headers 2>/dev/null | wc -l
+      register: not_running_pods
+      until: not_running_pods.stdout | trim == "0"
+      retries: 20
+      delay: 10
+      changed_when: false
+
+    - name: Get ArgoCD pod status
+      shell: kubectl get pods -n {{ namespace }}
+      register: argocd_pods
+      changed_when: false
+
+    - name: Display ArgoCD pod status
+      debug:
+        var: argocd_pods.stdout_lines
+
+    - name: Copy ArgoCD Application manifests to remote host
+      copy:
+        src: "{{ apps_dir }}/"
+        dest: /tmp/argocd-apps/
+        mode: '0644'
+
+    - name: Apply ArgoCD Application manifests
+      shell: kubectl apply -f /tmp/argocd-apps/
+      register: apps_applied
+      changed_when: "'configured' in apps_applied.stdout or 'created' in apps_applied.stdout"
+
+    - name: Display applied apps
+      debug:
+        var: apps_applied.stdout_lines
+
+    - name: Get initial admin password
+      shell: kubectl -n {{ namespace }} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+      register: argocd_password
+      changed_when: false
+      no_log: true
+
+    - name: Display deployment completion
+      debug:
+        msg:
+          - "=========================================="
+          - "✅ ArgoCD deployed!"
+          - "=========================================="
+          - ""
+          - "Access UI:"
+          - "  https://argocd.home.local"
+          - ""
+          - "Login credentials:"
+          - "  Username: admin"
+          - "  Password: {{ argocd_password.stdout }}"
+          - ""
+          - "Change password after first login:"
+          - "  argocd account update-password"
+          - ""
+          - "Or port-forward if ingress not ready:"
+          - "  kubectl port-forward svc/argocd-server -n argocd 8080:443"

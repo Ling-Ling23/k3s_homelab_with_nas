@@ -1,68 +1,95 @@
-# k3s Homelab with NAS
+# K3s Homelab with NAS
 
-A complete infrastructure-as-code setup for running a k3s Kubernetes cluster on Raspberry Pis, managed from your laptop.
+Production-style homelab for Raspberry Pi using K3s, managed as infrastructure-as-code with Ansible and GitOps.
 
-## Overview
+## What this repository does
 
-This homelab setup allows you to:
-- Deploy and manage a k3s cluster on Raspberry Pis (scalable from 1 to 3+ nodes)
-- Configure everything via Ansible from your laptop
-- Deploy applications to your cluster
+- Provisions and manages a K3s cluster on Raspberry Pi nodes
+- Uses Ansible playbooks for repeatable cluster and platform deployment
+- Runs core platform services (storage, ingress, certs, monitoring, logging, secrets)
+- Uses ArgoCD for GitOps application delivery
 
-## Current Status
+## Current deployed stack
 
-- **Raspberry Pis**: 1 (expandable to 3)
-- **k3s Version**: v1.28.5+k3s1
-- **Management**: Ansible playbooks
+- K3s cluster on Raspberry Pi
+- Longhorn distributed storage
+- NFS storage integration (Synology NAS)
+- MetalLB load balancer
+- NGINX Ingress Controller
+- cert-manager with internal/self-signed CA
+- Kubernetes Dashboard
+- Prometheus + Grafana monitoring
+- Loki + Promtail logging
+- Sealed Secrets (with key backup + vault encryption workflow)
+- ArgoCD (GitOps) with sample app
+- GitHub Actions self-hosted runner (in-cluster)
 
-## Quick Start
+## Automation model
 
-### 1. Prerequisites
+- **Primary deployment method:** Ansible
+- **Infrastructure deployment:** `ansible/playbooks/*.yml`
+- **Platform orchestration:** `ansible/playbooks/master-deploy-k3s.yml`
+- **App delivery:** ArgoCD applications under `k3s/argocd/apps/`
 
-- Ansible installed on your laptop: `pip install ansible`
-- SSH key access to your Raspberry Pi(s)
-- Raspberry Pi OS 64-bit installed
+This means cluster setup and platform services are automated with Ansible, while ongoing app sync/deploy is handled by ArgoCD.
 
-### 2. Configure
+## Important note: GitHub runner requires manual registration
 
-1. Update `ansible/inventory/hosts.yml` with your Pi IP address(es)
-2. Change the token in `ansible/group_vars/all.yml`
-3. Set up SSH key auth: `ssh-copy-id pi@YOUR_PI_IP`
+Most of the infrastructure is automated with Ansible, but the GitHub Actions self-hosted runner needs a manual bootstrap step.
 
-### 3. Deploy
+- Generate a runner registration token in your GitHub repository (`Settings -> Actions -> Runners`)
+- Create/update the runner secret and seal it with Sealed Secrets
+- Apply the sealed secret and restart the runner pod/deployment
+
+This is expected because runner registration tokens are short-lived and repository-specific.
+
+## Quick start
+
+### 1) Prerequisites
+
+- Python + Ansible on your control machine
+- SSH connectivity to Raspberry Pi node(s)
+- Raspberry Pi OS 64-bit on nodes
+
+### 2) Configure inventory and vars
+
+1. Update host IPs/users in `ansible/inventory/hosts.yml`
+2. Set cluster/global variables in `ansible/group_vars/all.yml`
+3. Ensure SSH keys are configured for Ansible access
+
+### 3) Deploy with Ansible
 
 ```bash
 cd ansible
-ansible-playbook playbooks/setup-k3s.yml
+ansible-playbook -i inventory/hosts.yml playbooks/master-deploy-k3s.yml
 ```
 
-### 4. Access Your Cluster
+### 4) Verify cluster
 
 ```bash
-export KUBECONFIG=~/.kube/k3s-homelab-config
 kubectl get nodes
+kubectl get pods -A
+```
+
+## Repository layout
+
+```text
+ansible/                  # Infrastructure and platform automation
+	inventory/              # Node inventory
+	group_vars/             # Shared variables
+	playbooks/              # Deployment/reset playbooks
+k3s/                      # Kubernetes manifests, Helm values, component configs
+	argocd/                 # ArgoCD config, apps, sample workloads
+	monitoring/             # Prometheus/Grafana configs
+	logging/                # Loki/Promtail configs
+	sealed-secrets/         # Sealed Secrets configs
+docs/                     # Roadmap, deployment notes, infrastructure lifecycle
+scripts/                  # Destroy/reset helper scripts
 ```
 
 ## Documentation
 
-See [ansible/README.md](ansible/README.md) for detailed instructions.
-
-## Structure
-
-```
-├── ansible/                    # Ansible playbooks and configuration
-│   ├── inventory/             # Host definitions
-│   ├── group_vars/            # Configuration variables
-│   ├── playbooks/             # Ansible playbooks
-│   └── README.md              # Detailed Ansible documentation
-└── README.md                  # This file
-```
-
-## Roadmap
-
-- [x] Ansible setup for k3s deployment
-- [ ] Storage configuration (NAS integration)
-- [ ] Ingress controller setup (MetalLB + nginx)
-- [ ] GitOps with ArgoCD
-- [ ] Monitoring stack (Prometheus + Grafana)
-- [ ] Backup strategy
+- Main Ansible guide: [ansible/README.md](ansible/README.md)
+- Deployment notes: [docs/steps_deployment.md](docs/steps_deployment.md)
+- Roadmap and progress: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Lifecycle/operations notes: [docs/infrastructure-lifecycle.md](docs/infrastructure-lifecycle.md)

@@ -5,6 +5,8 @@ deploymentMode: SingleBinary
 
 loki:
   auth_enabled: false
+  server:
+    log_level: warn
   commonConfig:
     replication_factor: 1
   storage:

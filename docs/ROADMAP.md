@@ -1,7 +1,7 @@
 # K3s Homelab - Next Steps & Roadmap
 
 ## ✅ Completed
-- [x] K3s cluster setup
+- [x] K3s cluster setup (Raspberry Pi x3, single master)
 - [x] Longhorn storage (distributed)
 - [x] NFS storage (Synology)
 - [x] MetalLB load balancer
@@ -11,66 +11,50 @@
 - [x] Grafana dashboards
 - [x] cert-manager with self-signed CA
 - [x] TLS/SSL for all services
-- [x] SFTP auto-upload on save
+- [x] ArgoCD GitOps (deployed with Helm, demo app running)
+- [x] Centralized Logging (Loki + Promtail)
+- [x] Sealed Secrets (controller deployed, kubeseal installed, keys backed up & vault-encrypted)
 
 ## 🎯 Priority Queue
 
-### 1. GitOps with ArgoCD ⭐ RECOMMENDED NEXT
-**Why:** Automate deployments, visualize cluster, rollback easily
-**Complexity:** Medium
-**Time:** 2-3 hours
+### 0. Add MinIO (after 3x raspi)
+- S3-compatible API - Apps that need object storage (rare in homelab) - Want to learn S3 APIs (valid learning goal)
+- Backup target - For Longhorn/Velero cluster backups - Need cluster backups (Velero + MinIO for K8s backups)
+- Multi-cloud simulation - If learning cloud architectures
+- Application storage - Some apps prefer S3 over NFS (e.g., photo apps, ML models) - Run S3-dependent apps
 
-**What you'll learn:**
-- Declarative deployment from Git
-- Continuous Delivery
-- Cluster visualization
-- Sync and rollback strategies
+### 0. Secrets
+ SEALED SECRETS FOR APPS, ANSIBLE SECRETS FOR INFRA
+- Homelab: Learn all three (Sealed Secrets, ESO, Vault)
+- Work: Pick one primary (usually ESO + Vault or Cloud)
+- Start with Sealed Secrets, add ESO + Vault
 
-**Resources needed:**
-- Git repository (already have)
-- 200MB storage
+### 1. ~~GitOps with ArgoCD~~ ✅ COMPLETED
+**Status:** Deployed via Helm with custom values, demo app running at https://demo.home.local
+**What you learned:**
+- GitOps principles
+- Auto-sync from Git
+- Declarative deployments
+- ArgoCD Application CRDs
 
-**Setup:**
-```bash
-# Create k3s/argocd/ directory
-# Install ArgoCD
-# Connect to your Git repo
-# Deploy apps via ArgoCD
-```
+**Next:** Convert existing services to ArgoCD or set up GitHub Actions Runner
 
 ---
 
-### 2. Centralized Logging (Fluent Bit + Loki)
-**Why:** Search all logs in one place, complete observability
-**Complexity:** Medium
-**Time:** 1-2 hours
-
-**What you'll learn:**
-- Log processing and forwarding
-- Fluent Bit configuration
+### 2. ~~Centralized Logging (Loki + Promtail)~~ ✅ COMPLETED
+**Status:** Loki + Promtail deployed, integrated with Grafana
+**What you learned:**
+- Log aggregation with Loki
+- Log collection with Promtail
 - LogQL queries
-- Grafana Loki integration
-- Alert on log patterns
+- Grafana Loki datasource integration
+- Centralized log viewing
 
-**Resources needed:**
-- 5-10GB NFS storage for Loki
-- Integrates with existing Grafana
-
-**Components:**
-- Fluent Bit (log collector/forwarder - lightweight)
-- Loki (log aggregation backend)
-- Grafana (already installed)
-
-**Why Fluent Bit:**
-- Lightweight (~450KB memory footprint)
-- Better performance than Promtail
-- More flexible log processing
-- Built-in parsers for common formats
-- Can output to multiple destinations
+**Next:** GitHub Actions Runner or Backup & Disaster Recovery
 
 ---
 
-### 3. Backup & Disaster Recovery (Velero)
+### 3. Backup & Disaster Recovery (Velero) ⭐ RECOMMENDED NEXT
 **Why:** Protect your cluster, test disaster recovery
 **Complexity:** Medium
 **Time:** 2-3 hours
@@ -128,19 +112,15 @@
 
 ---
 
-### 6. Secret Management (Sealed Secrets or External Secrets)
-**Why:** Don't commit passwords to Git (needed for GitOps)
-**Complexity:** Medium
-**Time:** 1-2 hours
+### 6. ~~Secret Management (Sealed Secrets)~~ ✅ COMPLETED
+**Status:** Sealed Secrets controller deployed in `kube-system`, kubeseal CLI installed on cluster nodes, controller TLS keypair backed up locally and encrypted in Ansible Vault.
+**What you learned:**
+- Encrypted secrets safe for Git commits
+- Sealed Secrets controller and kubeseal workflow
+- Key backup and disaster recovery for secrets
+- Ansible Vault for encrypting sensitive backup files
 
-**What you'll learn:**
-- Encrypted secrets in Git
-- Secret rotation
-- External secret providers
-
-**Options:**
-- Sealed Secrets (simpler)
-- External Secrets Operator (more powerful)
+**Next:** External Secrets Operator (ESO) + Vault if you need dynamic secret rotation, or skip to Authelia/Tailscale
 
 ---
 
@@ -363,25 +343,25 @@
 
 ## 📋 Recommended Learning Path
 
-### Phase 1: DevOps Fundamentals (Now - Week 2)
+### Phase 1: DevOps Fundamentals ✅ COMPLETE
 1. ✅ GitOps with ArgoCD
-2. ✅ Centralized Logging (Loki)
-3. ✅ Backup & Disaster Recovery (Velero)
+2. ✅ Centralized Logging (Loki + Promtail)
+3. ✅ Secret Management (Sealed Secrets)
 
-### Phase 2: Security & Access (Week 3-4)
-4. ✅ Secret Management
-5. ✅ External Access (Tailscale)
-6. ✅ SSO/Authentication (Authelia)
+### Phase 2: Security & Access (Current)
+4. ⬜ Backup & Disaster Recovery (Velero) ⭐ NEXT
+5. ⬜ External Access (Tailscale)
+6. ⬜ SSO/Authentication (Authelia)
 
 ### Phase 3: Advanced Infrastructure (Month 2)
-7. ✅ Private Container Registry
-8. ✅ CI/CD Pipeline
-9. ✅ Database Operator
+7. ⬜ Private Container Registry (Harbor)
+8. ⬜ CI/CD Pipeline (GitHub Actions Runner)
+9. ⬜ Database Operator (CloudNativePG)
 
 ### Phase 4: Production-Grade (Month 3+)
-10. ✅ Distributed Tracing
-11. ✅ Policy Management
-12. ✅ Service Mesh (when needed)
+10. ⬜ Distributed Tracing (Jaeger/Tempo)
+11. ⬜ Policy Management (OPA Gatekeeper)
+12. ⬜ Service Mesh (Linkerd - when needed)
 
 ### Side Projects (Anytime)
 - Media Server Stack
@@ -426,5 +406,5 @@
 
 ---
 
-**Last Updated:** January 3, 2026
-**Current Focus:** GitOps with ArgoCD
+**Last Updated:** March 3, 2026
+**Current Focus:** Backup & Disaster Recovery (Velero) — protect cluster data before adding more services

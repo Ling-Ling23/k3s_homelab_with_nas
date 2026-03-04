@@ -1,0 +1,5 @@
+#ansible-playbook -e @group_vars/all.yml -i inventory/hosts.yml playbooks/901-destroy-k3s.yml
+
+- name: Destroy K3s Cluster - Complete Removal
+  import_playbook: 901-destroy-k3s.yml
+  tags: ['k3s', 'cluster', 'destroy']

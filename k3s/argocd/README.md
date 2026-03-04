@@ -33,7 +33,7 @@ bash k3s/argocd/deploy.sh
 
 ### 2. Access ArgoCD UI
 Login to https://argocd.home.local with admin credentials
-
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 ### 3. Deploy Demo App
 
 **Important:** Update `apps/demo-app.yaml` with your Git repository URL first!

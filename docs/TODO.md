@@ -1,0 +1,2 @@
+before destroy store sealed secrets (especially self hosted GH runner would require new setup)
+kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > ~/sealed-secrets-backup.yaml

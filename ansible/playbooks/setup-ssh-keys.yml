@@ -1,0 +1,53 @@
+---
+#ansible-playbook -i inventory/hosts.yml playbooks/setup-ssh-keys.yml --ask-pass
+- name: Configure SSH key authentication
+  hosts: k3s_cluster
+  become: yes
+  vars:
+    ssh_public_key_file: "{{ playbook_dir }}/../secrets/ansible_homelab_id_rsa.pub"
+    ssh_user: "{{ ansible_user }}"
+  
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: "/home/{{ ssh_user }}/.ssh"
+        state: directory
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: '0700'
+
+    - name: Read public key from file
+      set_fact:
+        ssh_public_key: "{{ lookup('file', ssh_public_key_file) }}"
+      delegate_to: localhost
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ ssh_user }}"
+        state: present
+        key: "{{ ssh_public_key }}"
+        exclusive: no
+
+    - name: Ensure authorized_keys has correct permissions
+      file:
+        path: "/home/{{ ssh_user }}/.ssh/authorized_keys"
+        owner: "{{ ssh_user }}"
+        group: "{{ ssh_user }}"
+        mode: '0600'
+
+    - name: Configure SSH daemon for key authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+        - { regexp: '^#?AuthorizedKeysFile', line: 'AuthorizedKeysFile .ssh/authorized_keys' }
+      notify: Restart SSH service
+
+  handlers:
+    - name: Restart SSH service
+      service:
+        name: sshd
+        state: restarted
