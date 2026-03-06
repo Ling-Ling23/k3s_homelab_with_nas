@@ -1,0 +1,13 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: velero
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  schedule: "0 2 * * *" # every day at 2 AM
+  template:
+    includedNamespaces:
+      - '*'
+    snapshotVolumes: true

@@ -1,0 +1,25 @@
+credentials:
+  useSecret: true
+  existingSecret: cloud-credentials
+
+configuration:
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: velero-backups
+      default: true
+      config:
+        region: us-east-1
+        s3ForcePathStyle: "true"
+        s3Url: "http://192.168.0.191:9000"
+        insecureSkipTLSVerify: "true"   # set false if valid TLS cert
+
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.10.1
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+deployNodeAgent: true
+snapshotsEnabled: false

@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+spec:
+  project: default
+  
+  # Source: Helm chart + values file stored in this repository
+  sources:
+    - repoURL: https://vmware-tanzu.github.io/helm-charts
+      chart: velero
+      targetRevision: 11.4.0
+      helm:
+        valueFiles:
+          - $values/k3s/argocd/velero/helm_values/velero-values.yaml
+    - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+      targetRevision: main
+      path: k3s/argocd/velero
+      directory:
+        recurse: false
+  
+  # Destination: Where to deploy Velero resources
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: velero
+  
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
