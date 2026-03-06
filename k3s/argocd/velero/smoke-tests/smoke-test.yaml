@@ -1,0 +1,8 @@
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: smoke-test
+  namespace: velero
+spec:
+  includedNamespaces:
+    - demo

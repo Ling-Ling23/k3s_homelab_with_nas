@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero-smoke-tests
+  namespace: argocd
+spec:
+  project: default
+  
+  # Source: Where the manifests are stored
+  source:
+    repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+    targetRevision: main
+    path: k3s/argocd/velero/smoke-tests
+    directory:
+      recurse: false
+      include: smoke-test.yaml
+  
+  # Destination: Where to deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: velero
+
+  # Manual sync only for on-demand smoke tests
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=false
