@@ -11,8 +11,12 @@ ArgoCD is deployed to manage applications via GitOps. Changes pushed to Git are 
 ## Directory Structure
 ```
 argocd/
+├── app-of-apps.yaml     # Root app that manages all child apps in apps/
 ├── apps/               # ArgoCD Application manifests
-│   └── demo-app.yaml   # Demo application definition
+│   ├── demo-app.yaml
+│   ├── github-runner.yaml
+│   ├── velero.yaml
+│   └── velero-smoke-tests.yaml
 ├── demo-app/           # Demo app Kubernetes manifests
 │   ├── namespace.yaml
 │   ├── deployment.yaml
@@ -34,28 +38,33 @@ bash k3s/argocd/deploy.sh
 ### 2. Access ArgoCD UI
 Login to https://argocd.home.local with admin credentials
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
-### 3. Deploy Demo App
+
+### 3. Bootstrap app-of-apps (one time)
+
+Apply the root application once:
+
+```bash
+kubectl apply -f k3s/argocd/app-of-apps.yaml
+```
+
+This root app will automatically create/sync every child app from `k3s/argocd/apps/`.
+
+### 4. Add or update apps
+
+Create or modify a file in `k3s/argocd/apps/*.yaml`, then push to Git.
+ArgoCD will detect and manage it automatically through `homelab-apps`.
+
+### 5. Access Demo App
 
 **Important:** Update `apps/demo-app.yaml` with your Git repository URL first!
 
-Then apply:
-```bash
-kubectl apply -f k3s/argocd/apps/demo-app.yaml
-```
-
-Or via ArgoCD UI:
-- Click "+ NEW APP"
-- Fill in the form with your repo details
-- Click "CREATE"
-
-### 4. Access Demo App
 After sync completes, visit: https://demo.home.local
 
 ## How It Works
 
 1. **Git as Source of Truth:** All manifests are stored in Git
 2. **ArgoCD Watches:** ArgoCD monitors your Git repo for changes
-3. **Auto-Sync:** Changes are automatically applied to cluster
+3. **Root App Manages Apps:** `homelab-apps` creates child Application CRs from `apps/`
 4. **Self-Heal:** If someone manually changes the cluster, ArgoCD reverts it
 
 ## Common Commands
