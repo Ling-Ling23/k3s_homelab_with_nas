@@ -50,6 +50,8 @@ This is expected because runner registration tokens are short-lived and reposito
 - Python + Ansible on your control machine
 - SSH connectivity to Raspberry Pi node(s)
 - Raspberry Pi OS 64-bit on nodes
+- Update system hosts file with:
+	$METALLB_IP dashboard.homelab.local longhorn.homelab.local grafana.homelab.local prometheus.homelab.local alertmanager.homelab.local argocd.home.local demo.home.local home-assistant.homelab.local
 
 ### 2) Configure inventory and vars
 

@@ -52,5 +52,6 @@ spec:
           mountPath: /tmp/runner
       volumes:
       - name: work
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: github-runner-work
       restartPolicy: Always
