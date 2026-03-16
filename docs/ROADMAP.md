@@ -14,65 +14,40 @@
 - [x] ArgoCD GitOps (deployed with Helm, demo app running)
 - [x] Centralized Logging (Loki + Promtail)
 - [x] Sealed Secrets (controller deployed, kubeseal installed, keys backed up & vault-encrypted)
+- [x] Velero + MinIO backup/restore (BSL available, smoke backup + restore validated, daily schedule in place)
+- [x] GitHub Actions self-hosted runner (deployed in cluster)
+- [x] ArgoCD app-of-apps bootstrap (new apps in `k3s/argocd/apps` auto-registered)
 
 ## 🎯 Priority Queue
 
-### 0. Add MinIO (after 3x raspi)
-- S3-compatible API - Apps that need object storage (rare in homelab) - Want to learn S3 APIs (valid learning goal)
-- Backup target - For Longhorn/Velero cluster backups - Need cluster backups (Velero + MinIO for K8s backups)
-- Multi-cloud simulation - If learning cloud architectures
-- Application storage - Some apps prefer S3 over NFS (e.g., photo apps, ML models) - Run S3-dependent apps
+### 0. Deploy real apps via ArgoCD (NOW)
+**Why:** You have the platform foundation done; now validate it with real workloads.
+**Complexity:** Medium
+**Time:** 1-2 weekends
 
-### 0. Secrets
- SEALED SECRETS FOR APPS, ANSIBLE SECRETS FOR INFRA
-- Homelab: Learn all three (Sealed Secrets, ESO, Vault)
-- Work: Pick one primary (usually ESO + Vault or Cloud)
-- Start with Sealed Secrets, add ESO + Vault
+**Recommended order:**
+1. Uptime Kuma (simple, immediate value, alerting)
+2. Gitea (stateful app + ingress + persistence + backups)
+3. Immich or Nextcloud (heavier app, storage + performance tuning)
+
+**Success criteria:**
+- App has namespace, ingress, PVC, resource requests/limits
+- Secrets are managed with Sealed Secrets
+- App has backup policy (Velero scope + restore test)
+- App has dashboard + basic alert in Grafana/Prometheus
 
 ### 1. ~~GitOps with ArgoCD~~ ✅ COMPLETED
-**Status:** Deployed via Helm with custom values, demo app running at https://demo.home.local
-**What you learned:**
-- GitOps principles
-- Auto-sync from Git
-- Declarative deployments
-- ArgoCD Application CRDs
-
-**Next:** Convert existing services to ArgoCD or set up GitHub Actions Runner
-
----
+**Status:** Helm-deployed ArgoCD, app-of-apps bootstrap, demo app and platform apps managed from Git.
 
 ### 2. ~~Centralized Logging (Loki + Promtail)~~ ✅ COMPLETED
-**Status:** Loki + Promtail deployed, integrated with Grafana
-**What you learned:**
-- Log aggregation with Loki
-- Log collection with Promtail
-- LogQL queries
-- Grafana Loki datasource integration
-- Centralized log viewing
+**Status:** Logs aggregated and visible in Grafana.
 
-**Next:** GitHub Actions Runner or Backup & Disaster Recovery
+### 3. ~~Backup & Disaster Recovery (Velero)~~ ✅ COMPLETED
+**Status:** Velero running with MinIO backend, daily schedule configured, smoke backup/restore validated.
 
----
-
-### 3. Backup & Disaster Recovery (Velero) ⭐ RECOMMENDED NEXT
-**Why:** Protect your cluster, test disaster recovery
-**Complexity:** Medium
-**Time:** 2-3 hours
-
-**What you'll learn:**
-- Cluster backup strategies
-- PVC backup/restore
-- Disaster recovery testing
-- Scheduled backups
-
-**Resources needed:**
-- NFS/S3 storage for backups
-- MinIO (optional, S3-compatible storage)
-
-**Setup:**
-- Backup to Synology NAS
-- Schedule daily backups
-- Test restore procedures
+### 4. Secrets hardening (next refinement)
+**Rule:** Sealed Secrets for app/runtime secrets, Ansible Vault for infra/bootstrap secrets.
+**Optional next step:** Evaluate External Secrets Operator + Vault once current setup feels routine.
 
 ---
 
@@ -162,7 +137,7 @@
 
 ## 🚀 CI/CD & Automation
 
-### 9. GitHub Actions Self-Hosted Runner
+### 9. ~~GitHub Actions Self-Hosted Runner~~ ✅ COMPLETED
 **Why:** Build and test in your own cluster
 **Complexity:** Low-Medium
 **Time:** 1-2 hours
@@ -177,6 +152,7 @@
 - Free CI/CD minutes
 - Full control over build environment
 - Faster builds (local network)
+- **Status:** Runner deployed and registered; credentials managed via Sealed Secrets workflow.
 
 ---
 
@@ -348,14 +324,14 @@
 2. ✅ Centralized Logging (Loki + Promtail)
 3. ✅ Secret Management (Sealed Secrets)
 
-### Phase 2: Security & Access (Current)
-4. ⬜ Backup & Disaster Recovery (Velero) ⭐ NEXT
+### Phase 2: Security & Access ✅ COMPLETE
+4. ✅ Backup & Disaster Recovery (Velero)
 5. ⬜ External Access (Tailscale)
 6. ⬜ SSO/Authentication (Authelia)
 
-### Phase 3: Advanced Infrastructure (Month 2)
-7. ⬜ Private Container Registry (Harbor)
-8. ⬜ CI/CD Pipeline (GitHub Actions Runner)
+### Phase 3: App Platform Buildout (Current)
+7. ⬜ Deploy 2-3 real apps via ArgoCD (with PVC + ingress + alerts)
+8. ✅ CI/CD Pipeline baseline (GitHub Actions Runner)
 9. ⬜ Database Operator (CloudNativePG)
 
 ### Phase 4: Production-Grade (Month 3+)
@@ -399,12 +375,11 @@
 
 ## 📝 Notes
 
-- **Storage consideration:** With 1 HDD in Synology, prioritize backups
 - **Resource limits:** Raspberry Pi has limited resources, be selective
 - **Start small:** Master basics before advanced topics
 - **Document everything:** Keep this file updated with your progress
 
 ---
 
-**Last Updated:** March 3, 2026
-**Current Focus:** Backup & Disaster Recovery (Velero) — protect cluster data before adding more services
+**Last Updated:** March 7, 2026
+**Current Focus:** Deploy real apps on top of the platform (ArgoCD + Sealed Secrets + Velero-backed recovery)
