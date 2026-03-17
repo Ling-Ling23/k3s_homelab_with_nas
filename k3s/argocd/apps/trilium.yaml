@@ -7,9 +7,9 @@ spec:
   project: default
 
   sources:
-    - repoURL: https://nicholaswilde.github.io/helm-charts
-      chart: trilium-notes
-      targetRevision: "1.x"
+    - repoURL: https://triliumnext.github.io/helm-charts
+      chart: trilium
+      targetRevision: "1.3.0"
       helm:
         valueFiles:
           - $values/k3s/argocd/trilium/helm_values/trilium-values.yaml
