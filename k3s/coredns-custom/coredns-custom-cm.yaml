@@ -16,6 +16,7 @@ data:
             192.168.0.200 homarr.homelab.local
             192.168.0.200 dashy.homelab.local
             192.168.0.200 calibre.homelab.local
+            192.168.0.200 trilium.homelab.local
             fallthrough
         }
         forward . /etc/resolv.conf

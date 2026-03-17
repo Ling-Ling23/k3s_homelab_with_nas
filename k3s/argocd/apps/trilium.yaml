@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trilium
+  namespace: argocd
+spec:
+  project: default
+
+  sources:
+    - repoURL: https://nicholaswilde.github.io/helm-charts
+      chart: trilium-notes
+      targetRevision: "1.x"
+      helm:
+        valueFiles:
+          - $values/k3s/argocd/trilium/helm_values/trilium-values.yaml
+    - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+      targetRevision: main
+      path: k3s/argocd/trilium
+      directory:
+        recurse: false
+        exclude: "helm_values/**"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trilium
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
