@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashy-config
+  namespace: dashy
+data:
+  conf.yml: |
+    pageInfo:
+      title: Homelab Dashboard
+      description: k3s homelab services
+      logo: https://dashy.to/img/dashy-logo.png
+    appConfig:
+      theme: colorful
+      layout: auto
+      iconSize: small
+      language: en
+    sections:
+      - name: Cluster
+        icon: fas fa-server
+        items:
+          - &ref_0
+            title: ArgoCD
+            description: GitOps continuous delivery
+            url: https://argocd.home.local
+            icon: si-argo
+            id: 0_738_argocd
+          - &ref_1
+            title: Longhorn
+            description: Distributed block storage
+            url: http://longhorn.homelab.local
+            icon: si-longhorn
+            id: 1_738_longhorn
+          - &ref_2
+            title: Kubernetes Dashboard
+            description: Cluster overview
+            url: https://dashboard.homelab.local
+            icon: si-kubernetes
+            id: 2_738_kubernetesdashboard
+        filteredItems:
+          - *ref_0
+          - *ref_1
+          - *ref_2
+      - name: Monitoring
+        icon: fas fa-chart-line
+        items:
+          - &ref_3
+            title: Grafana
+            description: Metrics and dashboards
+            url: https://grafana.homelab.local
+            icon: si-grafana
+            id: 0_1062_grafana
+          - &ref_4
+            title: Prometheus
+            description: Metrics collection
+            url: https://prometheus.homelab.local
+            icon: si-prometheus
+            id: 1_1062_prometheus
+          - &ref_5
+            title: Alertmanager
+            description: Alert routing
+            url: https://alertmanager.homelab.local
+            icon: si-prometheus
+            id: 2_1062_alertmanager
+        filteredItems:
+          - *ref_3
+          - *ref_4
+          - *ref_5
+      - name: Apps
+        icon: fas fa-th
+        items:
+          - &ref_6
+            title: Home Assistant
+            description: Home automation
+            url: https://home-assistant.homelab.local
+            icon: si-homeassistant
+            id: 0_404_homeassistant
+          - &ref_7
+            title: NAS Synology
+            description: Storage
+            icon: fas fa-database
+            url: https://lingling23.quickconnect.to/https_first
+            id: 1_404_nassynology
+        filteredItems:
+          - *ref_6
+          - *ref_7
+      - name: Networking
+        icon: fas fa-network-wired
+        displayData:
+          sortBy: default
+          rows: 1
+          cols: 1
+          collapsed: false
+          hideForGuests: false
+        items:
+          - &ref_8
+            title: TP-Link C6 Wi-Fi Router
+            description: Wifi Router
+            icon: fas fa-router
+            url: http://tplinkwifi.net/webpages/login.html?t=1657161073674
+            id: 0_1064_tplinkcwifirouter
+          - &ref_9
+            title: TP-Link RE700x
+            description: Repeater
+            icon: fas fa-wifi
+            url: http://tplinkrepeater.net/webpages/login.html?v=62c60c5d
+            id: 1_1064_tplinkrex
+        filteredItems:
+          - *ref_8
+          - *ref_9

@@ -1,0 +1,29 @@
+namespaceOverride: home-assistant
+
+ingress:
+  # We use a separate Kubernetes ingress manifest, but setting this to true
+  # enables reverse-proxy HTTP config in Home Assistant's generated config.
+  external: true
+
+persistence:
+  enabled: true
+  # StatefulSet mode uses volumeClaimTemplates
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  storageClass: longhorn-2replica
+
+prometheus:
+
+serviceMonitor:
+  enabled: true
+  scrapeInterval: 30s
+  labels:
+    release: prometheus
+
+configuration:
+  enabled: true
+  trusted_proxies:
+    - 10.42.0.0/16
+    - 10.43.0.0/16
+    - 192.168.0.0/16
+    - 127.0.0.0/8

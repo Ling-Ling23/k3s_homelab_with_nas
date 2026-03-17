@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dashy
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+    targetRevision: main
+    path: k3s/argocd/dashy
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dashy
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

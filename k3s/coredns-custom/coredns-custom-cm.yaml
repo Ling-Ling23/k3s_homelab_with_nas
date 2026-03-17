@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  homelab.server: |
+    homelab.local:53 {
+        hosts {
+            192.168.0.200 longhorn.homelab.local
+            192.168.0.200 dashboard.homelab.local
+            192.168.0.200 grafana.homelab.local
+            192.168.0.200 alertmanager.homelab.local
+            192.168.0.200 prometheus.homelab.local
+            192.168.0.200 home-assistant.homelab.local
+            192.168.0.200 homarr.homelab.local
+            192.168.0.200 dashy.homelab.local
+            192.168.0.200 calibre.homelab.local
+            fallthrough
+        }
+        forward . /etc/resolv.conf
+    }
+    home.local:53 {
+        hosts {
+            192.168.0.200 argocd.home.local
+            192.168.0.200 demo.home.local
+            fallthrough
+        }
+        forward . /etc/resolv.conf
+    }
