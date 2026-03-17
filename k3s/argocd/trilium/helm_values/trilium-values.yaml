@@ -3,6 +3,9 @@
 
 controllers:
   main:
+    initContainers:
+      fixperms:
+        enabled: false
     containers:
       trilium:
         image:
