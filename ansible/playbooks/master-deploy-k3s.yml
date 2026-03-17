@@ -15,32 +15,41 @@
 #   6. Monitoring stack
 #   7. Logging stack
 #   8. Sealed secrets
+#   9. ArgoCD GitOps
 
 
 #- name: Setup K3s cluster
 #  import_playbook: 001-setup-k3s.yml
 #  tags: ['k3s', 'cluster']
+#
+#- name: Deploy nfs storage
+#  import_playbook: 003a-deploy-nfs-storage.yml
+#  tags: ['storage', 'nfs']
 
-- name: Deploy Longhorn storage
-  import_playbook: 003b-deploy-longhorn-storage.yml
-  tags: ['storage', 'longhorn']
+#- name: Deploy Longhorn storage
+#  import_playbook: 003b-deploy-longhorn-storage.yml
+#  tags: ['storage', 'longhorn']
+#
+#- name: Deploy cert-manager
+#  import_playbook: 004-deploy-cert-manager.yml
+#  tags: ['certs', 'security']
+#
+#- name: Deploy MetalLB and NGINX Ingress
+#  import_playbook: 005-deploy-metallb-nginx-ingress.yml
+#  tags: ['networking', 'ingress']
 
-- name: Deploy cert-manager
-  import_playbook: 004-deploy-cert-manager.yml
-  tags: ['certs', 'security']
+#- name: Deploy monitoring stack
+#  import_playbook: 006-deploy-monitoring.yml
+#  tags: ['monitoring', 'observability']
+#
+#- name: Deploy logging stack
+#  import_playbook: 007-deploy-logging.yml
+#  tags: ['logging', 'observability']
+#
+#- name: Deploy sealed secrets
+#  import_playbook: 008-deploy-sealed-secrets.yml
+#  tags: ['secrets', 'security']
 
-- name: Deploy MetalLB and NGINX Ingress
-  import_playbook: 005-deploy-metallb-nginx-ingress.yml
-  tags: ['networking', 'ingress']
-
-- name: Deploy monitoring stack
-  import_playbook: 006-deploy-monitoring.yml
-  tags: ['monitoring', 'observability']
-
-- name: Deploy logging stack
-  import_playbook: 007-deploy-logging.yml
-  tags: ['logging', 'observability']
-
-- name: Deploy sealed secrets
-  import_playbook: 008-deploy-sealed-secrets.yml
-  tags: ['secrets', 'security']
+- name: Deploy ArgoCD
+  import_playbook: 009-deploy-argocd.yml
+  tags: ['argocd', 'gitops']

@@ -2,6 +2,8 @@
 
 ## now
 - flag raspis based on resources - use flags to deploy there
+- resourceqoutas and limits
+- dashy access to items from internet?
 
 ## later
 - before destroy store sealed secrets (especially self hosted GH runner would require new setup)

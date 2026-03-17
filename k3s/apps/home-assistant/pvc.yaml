@@ -1,0 +1,15 @@
+---
+# Example: Standalone PVC (useful with Deployment mode + persistence.existingClaim)
+# Default chart mode is StatefulSet, which uses volumeClaimTemplates instead.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: home-assistant-longhorn-pvc
+  namespace: home-assistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-2replica
+  resources:
+    requests:
+      storage: 1Gi  # Small, fast, replicated

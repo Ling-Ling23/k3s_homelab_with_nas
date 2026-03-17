@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: calibre-web
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+    targetRevision: main
+    path: k3s/argocd/calibre-web
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: calibre-web
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
