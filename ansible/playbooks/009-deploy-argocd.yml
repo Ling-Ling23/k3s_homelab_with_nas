@@ -8,7 +8,7 @@
     helm_repo_name: argo
     helm_repo_url: https://argoproj.github.io/argo-helm
     chart_name: argo/argo-cd
-    values_file: "{{ playbook_dir }}/../../k3s/argocd/helm_values/argocd-values.yaml"
+    values_file: "{{ playbook_dir }}/../../k3s/argocd/argocd/helm_values/argocd-values.yaml"
     apps_dir: "{{ playbook_dir }}/../../k3s/argocd/apps"
 
   tasks:

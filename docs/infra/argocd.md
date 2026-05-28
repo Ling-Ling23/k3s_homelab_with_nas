@@ -8,25 +8,7 @@ ArgoCD is deployed to manage applications via GitOps. Changes pushed to Git are 
 - **Username:** admin
 - **Password:** Get with: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d`
 
-## Directory Structure
-```
-argocd/
-├── app-of-apps.yaml     # Root app that manages all child apps in apps/
-├── apps/               # ArgoCD Application manifests
-│   ├── demo-app.yaml
-│   ├── github-runner.yaml
-│   ├── velero.yaml
-│   └── velero-smoke-tests.yaml
-├── demo-app/           # Demo app Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   └── ingress.yaml
-├── helm_values/
-│   └── argocd-values.yaml
-├── deploy.sh
-└── README.md
-```
+
 
 ## Quick Start
 
@@ -117,3 +99,11 @@ Reset admin password:
 kubectl -n argocd patch secret argocd-secret \
   -p '{"stringData": {"admin.password": "'$(htpasswd -bnBC 10 "" YOUR_NEW_PASSWORD | tr -d ':\n')'"}}'
 ```
+
+
+
+# anually trigger ArgoCD to sync/update the trilium helm deployment with the new config.
+    kubectl annotate application trilium -n argocd argocd.argoproj.io/refresh=hard
+    argocd app sync trilium --force
+    Or via kubectl rollout restart after ArgoCD syncs:
+        kubectl rollout restart deployment -n trilium
