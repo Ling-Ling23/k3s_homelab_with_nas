@@ -43,15 +43,10 @@ kubectl get pods -n logging
 kubectl logs -n logging -l app.kubernetes.io/name=promtail | grep -v 'GET /ready' | tail -50
 
 # Check Loki logs
-kubectl logs -n logging loki-0 -c loki -f
+kubectl logs -n logging logging-loki-0 -c loki -f
 ```
 
-## Query Logs in Grafana
 
-### Access Grafana Explore
-1. Go to https://grafana.homelab.local
-2. Click Explore (compass icon)
-3. Select "Loki" datasource
 
 ### Example LogQL Queries
 
@@ -109,7 +104,7 @@ Edit [promtail-values.yaml](helm_values/promtail-values.yaml) to add custom pars
 
 Monitor Loki storage:
 ```bash
-kubectl exec -n logging loki-0 -- du -sh /var/loki
+kubectl exec -n logging logging-loki-0 -- du -sh /var/loki
 ```
 
 ## Troubleshooting

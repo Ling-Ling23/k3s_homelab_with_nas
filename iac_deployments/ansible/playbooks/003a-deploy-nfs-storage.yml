@@ -30,7 +30,7 @@
     - name: Apply NFS StorageClass
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nfs/storageclass.yaml') | from_yaml }}"
+        definition: "{{ lookup('file', playbook_dir + '/../../../k3s/infra/nfs/storageclass.yaml') | from_yaml }}"
 
     - name: Verify NFS StorageClass
       kubernetes.core.k8s_info:
@@ -46,7 +46,7 @@
     - name: Apply test PVC and pod
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nfs/test-pvc.yaml') | from_yaml_all }}"
+        definition: "{{ lookup('file', playbook_dir + '/../../../k3s/infra/nfs/test-pvc.yaml') | from_yaml_all }}"
 
 
     - name: Wait for test PVC to be bound
@@ -89,5 +89,5 @@
     - name: Cleanup test resources
       kubernetes.core.k8s:
         state: absent
-        definition: "{{ lookup('file', playbook_dir + '/../../k3s/nfs/test-pvc.yaml') | from_yaml_all }}"
+        definition: "{{ lookup('file', playbook_dir + '/../../../k3s/infra/nfs/test-pvc.yaml') | from_yaml_all }}"
 

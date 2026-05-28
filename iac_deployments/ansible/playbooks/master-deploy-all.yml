@@ -12,10 +12,8 @@
 #   3. Storage (Longhorn)
 #   4. Certificate management
 #   5. Ingress and load balancing
-#   6. Monitoring stack
-#   7. Logging stack
-#   8. Sealed secrets
-#   9. ArgoCD GitOps
+#   6. Sealed secrets
+#   7. ArgoCD GitOps (monitoring + logging deployed automatically via ArgoCD)
 
 - name: Setup K3s cluster
   import_playbook: 001-setup-k3s.yml
@@ -32,14 +30,6 @@
 - name: Deploy MetalLB and NGINX Ingress
   import_playbook: 005-deploy-metallb-nginx-ingress.yml
   tags: ['networking', 'ingress']
-
-- name: Deploy monitoring stack
-  import_playbook: 006-deploy-monitoring.yml
-  tags: ['monitoring', 'observability']
-
-- name: Deploy logging stack
-  import_playbook: 007-deploy-logging.yml
-  tags: ['logging', 'observability']
 
 - name: Deploy sealed secrets
   import_playbook: 008-deploy-sealed-secrets.yml

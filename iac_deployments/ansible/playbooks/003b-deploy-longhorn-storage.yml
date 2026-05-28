@@ -38,7 +38,7 @@
     - name: Apply Longhorn StorageClass (2 replicas)
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('file', playbook_dir + '/../../k3s/longhorn/longhorn-storageclass.yaml') | from_yaml }}"
+        definition: "{{ lookup('file', playbook_dir + '/../../../k3s/infra/longhorn/longhorn-storageclass.yaml') | from_yaml }}"
 
     - name: Verify Longhorn StorageClass
       kubernetes.core.k8s_info:

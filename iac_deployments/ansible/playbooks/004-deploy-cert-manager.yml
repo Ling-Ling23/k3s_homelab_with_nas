@@ -71,7 +71,7 @@
     - name: Apply ClusterIssuer and CA configuration
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('file', playbook_dir + '/../../k3s/certs/cluster-issuer.yaml') | from_yaml_all }}"
+        definition: "{{ lookup('file', playbook_dir + '/../../../k3s/infra/certs/cluster-issuer.yaml') | from_yaml_all }}"
 
     - name: Wait for homelab CA certificate to be ready
       shell: kubectl get certificate homelab-ca -n cert-manager -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
