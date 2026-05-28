@@ -11,12 +11,14 @@ spec:
       chart: loki
       targetRevision: "*"
       helm:
+        releaseName: loki
         valueFiles:
           - $values/k3s/argocd/projects/infra/logging/helm_values/loki-values.yaml
     - repoURL: https://grafana.github.io/helm-charts
       chart: promtail
       targetRevision: "*"
       helm:
+        releaseName: promtail
         valueFiles:
           - $values/k3s/argocd/projects/infra/logging/helm_values/promtail-values.yaml
     - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
