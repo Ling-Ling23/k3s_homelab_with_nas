@@ -1,34 +1,38 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: velero
+  name: logging
   namespace: argocd
 spec:
   project: default
-  
-  # Source: Helm chart + values file stored in this repository
+
   sources:
-    - repoURL: https://vmware-tanzu.github.io/helm-charts
-      chart: velero
-      targetRevision: 11.4.0
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki
+      targetRevision: "*"
       helm:
         valueFiles:
-          - $values/k3s/argocd/projects/infra/velero/helm_values/velero-values.yaml
+          - $values/k3s/argocd/projects/infra/logging/helm_values/loki-values.yaml
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: promtail
+      targetRevision: "*"
+      helm:
+        valueFiles:
+          - $values/k3s/argocd/projects/infra/logging/helm_values/promtail-values.yaml
     - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
       targetRevision: main
       ref: values
     - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
       targetRevision: main
-      path: k3s/argocd/projects/infra/velero
+      path: k3s/argocd/projects/infra/logging
       directory:
         recurse: false
-  
-  # Destination: Where to deploy Velero resources
+        exclude: "helm_values/**"
+
   destination:
     server: https://kubernetes.default.svc
-    namespace: velero
-  
-  # Sync policy
+    namespace: logging
+
   syncPolicy:
     automated:
       prune: true
@@ -36,7 +40,7 @@ spec:
       allowEmpty: false
     syncOptions:
     - CreateNamespace=true
-    
+
     retry:
       limit: 5
       backoff:
