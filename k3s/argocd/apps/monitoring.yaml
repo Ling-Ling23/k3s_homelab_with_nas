@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: monitoring
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: monitoring
+    project: infra
 spec:
-  project: default
+  project: infra
 
   sources:
     - repoURL: https://prometheus-community.github.io/helm-charts
@@ -35,6 +39,8 @@ spec:
       allowEmpty: false
     syncOptions:
     - CreateNamespace=true
+    - ServerSideApply=true
+    - Replace=true
 
     retry:
       limit: 5

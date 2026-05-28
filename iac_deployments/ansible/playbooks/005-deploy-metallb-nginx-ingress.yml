@@ -27,7 +27,7 @@
     - name: Apply MetalLB IP pool configuration
       kubernetes.core.k8s:
         state: present
-        definition: "{{ lookup('file', playbook_dir + '/../../k3s/metallb/metallb-config.yaml') | from_yaml_all }}"
+        definition: "{{ lookup('file', playbook_dir + '/../../../k3s/infra/metallb/metallb-config.yaml') | from_yaml_all }}"
 
     - name: Display MetalLB status
       debug:
