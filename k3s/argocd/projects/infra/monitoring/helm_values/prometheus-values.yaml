@@ -1,0 +1,56 @@
+# Prometheus Stack Configuration for K3s Homelab
+# Using NFS (Synology) storage
+
+# Prometheus configuration
+prometheus:
+  prometheusSpec:
+    # Retain data for 15 days
+    retention: 15d
+    # Storage on NFS
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: nfs-synology  # Using NFS storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi  # Larger size possible on NAS
+    # Don't filter service monitors by Helm release
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+# Grafana configuration
+grafana:
+  enabled: true
+  adminPassword: "admin"  # ! Change this!
+  persistence:
+    enabled: true
+    storageClassName: nfs-synology  # Using NFS storage
+    size: 2Gi
+  # Disable init container - NFS doesn't support chown
+  initChownData:
+    enabled: false
+  # Ingress handled separately in ingress.yaml
+  ingress:
+    enabled: false
+
+# Node Exporter - collects host metrics
+nodeExporter:
+  enabled: true
+
+# Kube State Metrics - collects Kubernetes metrics
+kubeStateMetrics:
+  enabled: true
+
+# Alertmanager configuration
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: nfs-synology  # Using NFS storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi

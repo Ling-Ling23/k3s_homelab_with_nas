@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: "*"
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/k3s/argocd/projects/infra/monitoring/helm_values/prometheus-values.yaml
+    - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
+      targetRevision: main
+      path: k3s/argocd/projects/infra/monitoring
+      directory:
+        recurse: false
+        exclude: "helm_values/**"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
