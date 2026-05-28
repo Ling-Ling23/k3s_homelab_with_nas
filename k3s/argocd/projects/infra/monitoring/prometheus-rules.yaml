@@ -1,0 +1,178 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: raspberry-pi-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+  - name: raspberry-pi-hardware
+    interval: 30s
+    rules:
+    # CPU Temperature alerts
+    - alert: RaspberryPiHighTemperature
+      expr: node_hwmon_temp_celsius{chip="thermal_thermal_zone0"} > 70
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Raspberry Pi {{ $labels.instance }} temperature is high"
+        description: "Temperature is {{ $value }}°C (threshold: 70°C)\nNode: {{ $labels.instance }}"
+
+    - alert: RaspberryPiCriticalTemperature
+      expr: node_hwmon_temp_celsius{chip="thermal_thermal_zone0"} > 80
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Raspberry Pi {{ $labels.instance }} temperature is critical!"
+        description: "Temperature is {{ $value }}°C (threshold: 80°C). Risk of throttling!\nNode: {{ $labels.instance }}"
+
+    # CPU Usage
+    - alert: RaspberryPiHighCPU
+      expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 85
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage on {{ $labels.instance }}"
+        description: "CPU usage is {{ $value | humanize }}%"
+
+    # Memory alerts
+    - alert: RaspberryPiHighMemory
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage on {{ $labels.instance }}"
+        description: "Memory usage is {{ $value | humanize }}%"
+
+    - alert: RaspberryPiCriticalMemory
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Critical memory usage on {{ $labels.instance }}"
+        description: "Memory usage is {{ $value | humanize }}%. Out of memory imminent!"
+
+  - name: raspberry-pi-storage
+    interval: 30s
+    rules:
+    # Disk space alerts (SD card)
+    - alert: RaspberryPiLowDiskSpace
+      expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 75
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Low disk space on {{ $labels.instance }}"
+        description: "Root filesystem is {{ $value | humanize }}% full"
+
+    - alert: RaspberryPiCriticalDiskSpace
+      expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Critical disk space on {{ $labels.instance }}"
+        description: "Root filesystem is {{ $value | humanize }}% full. Immediate action required!"
+
+    # High disk I/O (SD card wear)
+    - alert: RaspberryPiHighDiskIO
+      expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High disk I/O on {{ $labels.instance }}"
+        description: "Disk I/O utilization is high. May cause SD card wear."
+
+  - name: raspberry-pi-network
+    interval: 30s
+    rules:
+    # Network issues
+    - alert: RaspberryPiHighNetworkErrors
+      expr: rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m]) > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High network errors on {{ $labels.instance }}"
+        description: "Network interface {{ $labels.device }} has {{ $value | humanize }} errors/sec"
+
+    - alert: RaspberryPiHighNetworkUsage
+      expr: rate(node_network_receive_bytes_total{device!~"lo|veth.*"}[5m]) * 8 / 1000000 > 900
+      for: 5m
+      labels:
+        severity: info
+      annotations:
+        summary: "High network bandwidth usage on {{ $labels.instance }}"
+        description: "Network {{ $labels.device }} receiving {{ $value | humanize }} Mbps (near 1Gbps limit)"
+
+  - name: kubernetes-node-health
+    interval: 30s
+    rules:
+    # Node status
+    - alert: KubernetesNodeNotReady
+      expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Kubernetes node {{ $labels.node }} is not ready"
+        description: "Node has been unready for more than 5 minutes"
+
+    - alert: KubernetesNodeMemoryPressure
+      expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node {{ $labels.node }} under memory pressure"
+        description: "Node is experiencing memory pressure"
+
+    - alert: KubernetesNodeDiskPressure
+      expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node {{ $labels.node }} under disk pressure"
+        description: "Node is experiencing disk pressure"
+
+  - name: kubernetes-pods
+    interval: 30s
+    rules:
+    # Pod issues
+    - alert: KubernetesPodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+        description: "Pod has restarted {{ $value | humanize }} times in the last 15 minutes"
+
+    - alert: KubernetesPodNotReady
+      expr: kube_pod_status_phase{phase!~"Running|Succeeded"} > 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} not ready"
+        description: "Pod has been in {{ $labels.phase }} state for more than 10 minutes"
+
+    - alert: KubernetesHighPodMemory
+      expr: sum by (namespace, pod) (container_memory_usage_bytes{container!=""}) / sum by (namespace, pod) (container_spec_memory_limit_bytes{container!=""}) * 100 > 90
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} high memory usage"
+        description: "Pod is using {{ $value | humanize }}% of its memory limit"
