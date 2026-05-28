@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: demo-app
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: demo
+    project: personal
 spec:
-  project: default
+  project: personal
   
   # Source: Where the manifests are stored
   source:

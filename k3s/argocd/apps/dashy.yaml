@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: dashy
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: dashboard
+    project: personal
 spec:
-  project: default
+  project: personal
 
   source:
     repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git

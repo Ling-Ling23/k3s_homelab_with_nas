@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: velero
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: backup
+    project: infra
 spec:
-  project: default
+  project: infra
   
   # Source: Helm chart + values file stored in this repository
   sources:

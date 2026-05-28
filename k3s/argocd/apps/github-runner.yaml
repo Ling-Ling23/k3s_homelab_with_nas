@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: github-runner
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: ci-cd
+    project: infra
 spec:
-  project: default
+  project: infra
   
   # Source: Where the manifests are stored
   source:

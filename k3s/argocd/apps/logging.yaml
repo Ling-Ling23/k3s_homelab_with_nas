@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: logging
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: logging
+    project: infra
 spec:
-  project: default
+  project: infra
 
   sources:
     - repoURL: https://grafana.github.io/helm-charts

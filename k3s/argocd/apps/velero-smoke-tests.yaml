@@ -3,8 +3,12 @@ kind: Application
 metadata:
   name: velero-smoke-tests
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: homelab
+    app.kubernetes.io/component: backup
+    project: infra
 spec:
-  project: default
+  project: infra
   
   # Source: Where the manifests are stored
   source:
