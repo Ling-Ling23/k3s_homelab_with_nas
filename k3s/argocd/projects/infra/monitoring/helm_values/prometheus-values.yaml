@@ -1,6 +1,15 @@
 # Prometheus Stack Configuration for K3s Homelab
 # Using NFS (Synology) storage
 
+# Disable admission webhooks - their PreSync hooks get stuck in ArgoCD
+# (ServiceAccount hooks have no terminal state, so ArgoCD waits forever)
+# Safe to disable in homelab environments
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
+    patch:
+      enabled: false
+
 # Prometheus configuration
 prometheus:
   prometheusSpec:
