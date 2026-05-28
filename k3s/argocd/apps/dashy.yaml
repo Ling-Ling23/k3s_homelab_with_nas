@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/Ling-Ling23/k3s_homelab_with_nas.git
     targetRevision: main
-    path: k3s/argocd/dashy
+    path: k3s/argocd/projects/personal/dashy
 
   destination:
     server: https://kubernetes.default.svc

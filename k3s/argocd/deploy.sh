@@ -7,7 +7,7 @@ NAMESPACE="argocd"
 RELEASE_NAME="argocd"
 HELM_REPO="argo"
 CHART="argo/argo-cd"
-VALUES_FILE="$(dirname "$0")/helm_values/argocd-values.yaml"
+VALUES_FILE="$(dirname "$0")/argocd/helm_values/argocd-values.yaml"
 
 echo "=========================================="
 echo "Deploying ArgoCD"

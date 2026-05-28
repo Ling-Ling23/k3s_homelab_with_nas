@@ -1,0 +1,77 @@
+# Loki configuration for homelab - SingleBinary mode
+# Storage on NFS (Synology)
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  server:
+    log_level: warn
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: 2024-01-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  limits_config:
+    retention_period: 168h
+    max_query_parallelism: 2
+    max_query_series: 500
+    query_timeout: 2m
+    split_queries_by_interval: 24h
+  querier:
+    max_concurrent: 2
+  query_scheduler:
+    max_outstanding_requests_per_tenant: 100
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    storageClass: nfs-synology
+    size: 10Gi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  # Fix for ARM/jemalloc issues on Raspberry Pi
+  extraEnv:
+    - name: GOMEMLIMIT
+      value: "460MiB"
+
+# Explicitly disable all scalable mode components
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+gateway:
+  enabled: false
+
+# Disable memory-intensive caching for Raspberry Pi
+chunksCache:
+  enabled: false
+  
+resultsCache:
+  enabled: false
+
+monitoring:
+  selfMonitoring:
+    enabled: false
+  lokiCanary:
+    enabled: false
+
+test:
+  enabled: false
