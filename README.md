@@ -26,12 +26,11 @@ Production-style homelab for Raspberry Pi using K3s, managed as infrastructure-a
 
 ## Automation model
 
-- **Primary deployment method:** Ansible
-- **Infrastructure deployment:** `ansible/playbooks/*.yml`
-- **Platform orchestration:** `ansible/playbooks/master-deploy-k3s.yml`
-- **App delivery:** ArgoCD applications under `k3s/argocd/apps/`
+- **Cluster + platform bootstrap:** Ansible (`iac_deployments/ansible/playbooks/`)
+- **Platform orchestration:** `iac_deployments/ansible/playbooks/master-deploy-k3s.yml`
+- **App delivery + ongoing sync:** ArgoCD (app-of-apps pattern under `k3s/argocd/apps/`)
 
-This means cluster setup and platform services are automated with Ansible, while ongoing app sync/deploy is handled by ArgoCD.
+Ansible handles one-time cluster setup and core platform services (K3s, Longhorn, cert-manager, MetalLB, Sealed Secrets, ArgoCD). Once ArgoCD is bootstrapped, monitoring, logging, and all other applications are managed via GitOps.
 
 ## Important note: GitHub runner requires manual registration
 
@@ -51,18 +50,18 @@ This is expected because runner registration tokens are short-lived and reposito
 - SSH connectivity to Raspberry Pi node(s)
 - Raspberry Pi OS 64-bit on nodes
 - Update system hosts file with:
-	$METALLB_IP dashboard.homelab.local longhorn.homelab.local grafana.homelab.local prometheus.homelab.local alertmanager.homelab.local argocd.home.local demo.home.local home-assistant.homelab.local
+	$METALLB_IP dashboard.homelab.local longhorn.homelab.local grafana.homelab.local prometheus.homelab.local alertmanager.homelab.local argocd.homelab.local demo.homelab.local home-assistant.homelab.local
 
 ### 2) Configure inventory and vars
 
-1. Update host IPs/users in `ansible/inventory/hosts.yml`
-2. Set cluster/global variables in `ansible/group_vars/all.yml`
+1. Update host IPs/users in `iac_deployments/ansible/inventory/hosts.yml`
+2. Set cluster/global variables in `iac_deployments/ansible/group_vars/all.yml`
 3. Ensure SSH keys are configured for Ansible access
 
 ### 3) Deploy with Ansible
 
 ```bash
-cd ansible
+cd iac_deployments/ansible
 ansible-playbook -i inventory/hosts.yml playbooks/master-deploy-k3s.yml
 ```
 
@@ -76,22 +75,30 @@ kubectl get pods -A
 ## Repository layout
 
 ```text
-ansible/                  # Infrastructure and platform automation
-	inventory/              # Node inventory
-	group_vars/             # Shared variables
-	playbooks/              # Deployment/reset playbooks
-k3s/                      # Kubernetes manifests, Helm values, component configs
-	argocd/                 # ArgoCD config, apps, sample workloads
-	monitoring/             # Prometheus/Grafana configs
-	logging/                # Loki/Promtail configs
-	sealed-secrets/         # Sealed Secrets configs
+iac_deployments/
+	ansible/                # Infrastructure and platform automation
+		inventory/            # Node inventory
+		group_vars/           # Shared variables
+		playbooks/            # Deployment/reset playbooks
+k3s/
+	infra/                  # Helm values + manifests for platform services
+		certs/                # cert-manager config
+		longhorn/             # Longhorn storage config
+		metallb/              # MetalLB config
+		nfs/                  # NFS storage config
+		sealed-secrets/       # Sealed Secrets config
+	argocd/                 # ArgoCD bootstrap and app definitions
+		app-of-apps.yaml      # Root bootstrap Application (apply once manually)
+		apps/                 # ArgoCD Application CRDs (one per app)
+		argocd/               # ArgoCD self-managed config (AppProjects)
+		projects/             # Helm values for ArgoCD-managed apps
+			infra/            # monitoring/, logging/ values
+			personal/         # dashy/, trilium/ values
 docs/                     # Roadmap, deployment notes, infrastructure lifecycle
-scripts/                  # Destroy/reset helper scripts
 ```
 
 ## Documentation
 
-- Main Ansible guide: [ansible/README.md](ansible/README.md)
-- Deployment notes: [docs/steps_deployment.md](docs/steps_deployment.md)
+- Main Ansible guide: [iac_deployments/ansible/README.md](iac_deployments/ansible/README.md)
 - Roadmap and progress: [docs/ROADMAP.md](docs/ROADMAP.md)
-- Lifecycle/operations notes: [docs/infrastructure-lifecycle.md](docs/infrastructure-lifecycle.md)
+- Lifecycle/operations notes: [docs/infra/infrastructure-lifecycle.md](docs/infra/infrastructure-lifecycle.md)
