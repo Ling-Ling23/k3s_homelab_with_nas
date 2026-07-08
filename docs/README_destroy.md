@@ -10,8 +10,19 @@ Scripts for safely destroying and resetting the K3s infrastructure.
 
 ```bash
 cd ~/k3s_homelab_with_nas
-ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/reset-k3s.yml
+ansible-playbook -i iac_deployments/ansible/inventory/hosts.yml iac_deployments/ansible/playbooks/reset-k3s.yml
 ```
+
+Summary of what survives a destroy without special action:
+
+Data	Survives?
+Git repo (manifests)	✅ Yes
+NFS data on Synology	✅ Yes
+Ansible vault secrets	✅ Yes
+Longhorn volumes	❌ No (orphaned) -> use velero
+Sealed Secrets key	❌ No (back up manually) -> do manually
+Velero backups in MinIO	✅ Yes (MinIO is on NAS)
+
 
 **What it does:**
 - Stops K3s services
@@ -85,6 +96,13 @@ kubectl get pvc -A > ~/cluster-pvcs.txt
 # List all services
 kubectl get svc -A > ~/cluster-services.txt
 ```
+
+### Keep longhorn data
+# Before destroy: trigger a manual backup
+velero backup create pre-destroy-backup --include-namespaces='*'
+
+# After rebuild + Longhorn reinstalled:
+velero restore create --from-backup pre-destroy-backup
 
 ## After Destruction
 
