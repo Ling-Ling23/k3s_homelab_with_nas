@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: joplin-backup-script
+  namespace: joplin-backup
+data:
+  backup-joplin.sh: |
+    #!/bin/sh
+    set -eu
+
+    STAMP="$(date +%Y-%m-%dT%H-%M-%S)"
+    echo "[joplin-backup] Starting backup at ${STAMP}"
+
+    WORKDIR=/tmp/backup
+    rm -rf "$WORKDIR"
+
+    REMOTE_URL="https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/${GIT_REPO_PATH}.git"
+
+    echo "[joplin-backup] Cloning backup repo ${GIT_REPO_PATH} (branch: ${GIT_BRANCH})..."
+    git clone --depth 1 --branch "$GIT_BRANCH" "$REMOTE_URL" "$WORKDIR" 2>&1 | sed "s/${GIT_TOKEN}/****/g"
+
+    echo "[joplin-backup] Installing rsync..."
+    apk add --no-cache rsync >/dev/null
+
+    mkdir -p "$WORKDIR/joplin"
+
+    echo "[joplin-backup] Syncing data from NAS mount (read-only source)..."
+    rsync -a --delete /joplin-data/ "$WORKDIR/joplin/"
+
+    cd "$WORKDIR"
+    git config user.email "joplin-backup@homelab.local"
+    git config user.name "Joplin Backup CronJob"
+
+    git add -A
+
+    if git diff --cached --quiet; then
+      echo "[joplin-backup] No changes detected, nothing to commit."
+      exit 0
+    fi
+
+    git commit -m "Joplin backup: ${STAMP}"
+    git push origin "$GIT_BRANCH" 2>&1 | sed "s/${GIT_TOKEN}/****/g"
+
+    echo "[joplin-backup] Backup complete."

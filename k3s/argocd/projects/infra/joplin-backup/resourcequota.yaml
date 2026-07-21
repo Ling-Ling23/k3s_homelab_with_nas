@@ -1,0 +1,38 @@
+# ResourceQuota and LimitRange for joplin-backup namespace
+# Sized for a single lightweight CronJob (runs briefly, once a day).
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: joplin-backup-quota
+  namespace: joplin-backup
+spec:
+  hard:
+    pods: "3"
+    requests.cpu: "200m"
+    requests.memory: "256Mi"
+    limits.cpu: "1"
+    limits.memory: "512Mi"
+    persistentvolumeclaims: "0"
+    services: "0"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: joplin-backup-limits
+  namespace: joplin-backup
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "250m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "50m"
+        memory: "64Mi"
+      max:
+        cpu: "1"
+        memory: "512Mi"
+      min:
+        cpu: "10m"
+        memory: "32Mi"
