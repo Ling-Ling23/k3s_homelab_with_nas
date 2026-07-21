@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: joplin-backup
+  namespace: joplin-backup
+spec:
+  # Daily at 03:15 (cluster local time)
+  schedule: "15 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: alpine/git:2.45.2
+              command: ["/bin/sh", "/scripts/backup-joplin.sh"]
+              env:
+                - name: GIT_REPO_PATH
+                  value: "Ling-Ling23/joplin-backup" # owner/repo of the backup destination
+                - name: GIT_BRANCH
+                  value: "main"
+                - name: GIT_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: joplin-backup-secret
+                      key: GIT_USERNAME
+                - name: GIT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: joplin-backup-secret
+                      key: GIT_TOKEN
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "250m"
+                  memory: "256Mi"
+              volumeMounts:
+                - name: joplin-data
+                  mountPath: /joplin-data
+                  readOnly: true
+                - name: backup-script
+                  mountPath: /scripts
+          volumes:
+            - name: joplin-data
+              nfs:
+                server: 192.168.0.191
+                path: /volume1/joplin
+                readOnly: true
+            - name: backup-script
+              configMap:
+                name: joplin-backup-script
+                defaultMode: 0755
