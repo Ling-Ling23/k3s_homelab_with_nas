@@ -3,6 +3,9 @@
 Backs up the Synology NAS folder `/volume1/joplin` to a private GitHub repo
 once a day, using a plain NFS volume mount (read-only) + a CronJob.
 
+kubectl create job -n joplin-backup joplin-backup-manual-1 --from=cronjob/joplin-backup
+k -n joplin-backup delete job joplin-backup-manual-1
+
 ## Prerequisites
 
 ### 1. NFS export on Synology
