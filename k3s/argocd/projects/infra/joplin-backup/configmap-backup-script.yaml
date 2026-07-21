@@ -25,7 +25,12 @@ data:
     mkdir -p "$WORKDIR/joplin"
 
     echo "[joplin-backup] Syncing data from NAS mount (read-only source)..."
-    rsync -a --delete /joplin-data/ "$WORKDIR/joplin/"
+    # Exclude Synology internal dirs: #recycle (recycle bin, restrictive perms)
+    # and @eaDir (thumbnail/metadata cache) - not part of the actual data.
+    rsync -a --delete \
+      --exclude='#recycle/' \
+      --exclude='@eaDir/' \
+      /joplin-data/ "$WORKDIR/joplin/"
 
     cd "$WORKDIR"
     git config user.email "joplin-backup@homelab.local"
