@@ -23,6 +23,7 @@ Production-style homelab for Raspberry Pi using K3s, managed as infrastructure-a
 - Sealed Secrets (with key backup + vault encryption workflow)
 - ArgoCD (GitOps) with sample app
 - GitHub Actions self-hosted runner (in-cluster)
+- Joplin NAS data backup CronJob (NFS → GitHub, daily)
 
 ## Automation model
 
@@ -92,7 +93,7 @@ k3s/
 		apps/                 # ArgoCD Application CRDs (one per app)
 		argocd/               # ArgoCD self-managed config (AppProjects)
 		projects/             # Helm values for ArgoCD-managed apps
-			infra/            # monitoring/, logging/ values
+			infra/            # monitoring/, logging/, joplin-backup/ values
 			personal/         # dashy/, trilium/ values
 docs/                     # Roadmap, deployment notes, infrastructure lifecycle
 ```
